@@ -1,38 +1,9 @@
-import fs from "fs";
 import path from "path";
 import pg from "pg";
 import { loadMigrations } from "../src/lib/schema-migrate.mjs";
+import { loadLocalEnv, normalizePostgresUrl } from "./env.mjs";
 
-function loadEnv(file) {
-  if (!fs.existsSync(file)) return;
-  for (const line of fs.readFileSync(file, "utf8").split("\n")) {
-    const trimmed = line.trim();
-    if (!trimmed || trimmed.startsWith("#")) continue;
-    const eq = trimmed.indexOf("=");
-    if (eq <= 0) continue;
-    const key = trimmed.slice(0, eq).trim();
-    let value = trimmed.slice(eq + 1).trim();
-    if (
-      (value.startsWith('"') && value.endsWith('"')) ||
-      (value.startsWith("'") && value.endsWith("'"))
-    ) {
-      value = value.slice(1, -1);
-    }
-    if (process.env[key] === undefined) process.env[key] = value;
-  }
-}
-
-loadEnv(path.join(process.cwd(), ".env.local"));
-loadEnv(path.join(process.cwd(), ".env"));
-
-function normalize(url) {
-  const parsed = new URL(url);
-  const mode = parsed.searchParams.get("sslmode");
-  if (!mode || mode === "require" || mode === "prefer" || mode === "verify-ca") {
-    parsed.searchParams.set("sslmode", "verify-full");
-  }
-  return parsed.toString();
-}
+loadLocalEnv();
 
 const connectionString = process.env.DATABASE_URL_DIRECT || process.env.DATABASE_URL;
 if (!connectionString) {
@@ -42,7 +13,7 @@ if (!connectionString) {
 
 const usingDirect = Boolean(process.env.DATABASE_URL_DIRECT);
 pg.types.setTypeParser(20, (value) => Number(value));
-const client = new pg.Client({ connectionString: normalize(connectionString) });
+const client = new pg.Client({ connectionString: normalizePostgresUrl(connectionString) });
 
 try {
   await client.connect();

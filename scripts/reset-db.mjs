@@ -1,27 +1,7 @@
 import fs from "fs";
-import path from "path";
+import { loadLocalEnv } from "./env.mjs";
 
-function loadEnv(file) {
-  if (!fs.existsSync(file)) return;
-  for (const line of fs.readFileSync(file, "utf8").split("\n")) {
-    const trimmed = line.trim();
-    if (!trimmed || trimmed.startsWith("#")) continue;
-    const eq = trimmed.indexOf("=");
-    if (eq <= 0) continue;
-    const key = trimmed.slice(0, eq).trim();
-    let value = trimmed.slice(eq + 1).trim();
-    if (
-      (value.startsWith('"') && value.endsWith('"')) ||
-      (value.startsWith("'") && value.endsWith("'"))
-    ) {
-      value = value.slice(1, -1);
-    }
-    if (process.env[key] === undefined) process.env[key] = value;
-  }
-}
-
-loadEnv(path.join(process.cwd(), ".env.local"));
-loadEnv(path.join(process.cwd(), ".env"));
+loadLocalEnv();
 
 if (process.env.DATABASE_URL || process.env.DATABASE_URL_DIRECT) {
   console.log("检测到 DATABASE_URL。本命令不会清空远程 Postgres。");
