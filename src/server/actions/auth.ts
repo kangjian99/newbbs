@@ -119,13 +119,20 @@ export async function registerAction(_prev: ActionState, formData: FormData): Pr
 
     const now = Date.now();
     const id = createId();
-    await dbRun(
-      `INSERT INTO users (
-        id, username, email, password_hash, nickname, bio, avatar_hue, role,
-        created_at, last_seen_at, last_visit_at, prev_visit_at
-      ) VALUES (?, ?, ?, ?, ?, '', ?, ?, ?, ?, ?, ?)`,
-      [id, username, email, await hashPassword(data.password), data.nickname, Math.floor(Math.random() * 360), role, now, now, now, now],
-    );
+    const passwordHash = await hashPassword(data.password);
+    try {
+      await dbRun(
+        `INSERT INTO users (
+          id, username, email, password_hash, nickname, bio, avatar_hue, role,
+          created_at, last_seen_at, last_visit_at, prev_visit_at
+        ) VALUES (?, ?, ?, ?, ?, '', ?, ?, ?, ?, ?, ?)`,
+        [id, username, email, passwordHash, data.nickname, Math.floor(Math.random() * 360), role, now, now, now, now],
+      );
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "";
+      if (/unique|duplicate/i.test(message)) return { error: "用户名或邮箱刚刚已被注册，请换一个" };
+      throw error;
+    }
     await markAllThreadsRead(id);
     await createSession(id);
     redirect("/");
