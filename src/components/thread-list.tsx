@@ -28,14 +28,14 @@ export function ThreadList({ threads, showBoard = false }: { threads: ThreadSumm
                 <Badge variant="outline" className="gap-1"><Lock className="size-3" />锁定</Badge>
               ) : null}
             </div>
-            <Link href={`/threads/${thread.id}`} className="cjk mt-0.5 block text-base font-medium leading-7 hover:text-primary">
+            <Link href={`/threads/${thread.id}`} className="cjk mt-0.5 block text-[15px] font-medium leading-7 hover:text-primary">
               {thread.title}
             </Link>
             {thread.preview ? (
               <p className="cjk mt-0.5 text-sm leading-6 text-muted-foreground">{thread.preview}</p>
             ) : null}
             <p className="text-xs leading-5 text-muted-foreground">
-              <Link href={`/members/${thread.authorUsername}`} className="text-sm font-bold text-foreground hover:text-primary">{thread.authorNickname}</Link>
+              <Link href={`/members/${thread.authorUsername}`} className="text-[13px] font-bold text-foreground hover:text-primary">{thread.authorNickname}</Link>
               {" · "}
               <TimeText value={thread.createdAt} />
               {" · "}
