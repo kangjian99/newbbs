@@ -185,6 +185,27 @@
   padding-left: 0.9em;
   color: var(--muted-foreground);
 }
+.markdown-body img {
+  display: block;
+  max-width: 100%;
+  max-height: 32rem;
+  height: auto;
+  margin: 0.75em 0;
+  border-radius: 0.6rem;
+}
+.markdown-body .media-embed {
+  display: block;
+  margin: 0.75em 0;
+}
+.markdown-body .media-embed iframe,
+.markdown-body .media-embed video {
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  border: 0;
+  border-radius: 0.6rem;
+  background: #000;
+}
 .markdown-body a {
   color: var(--primary);
   text-decoration: underline;

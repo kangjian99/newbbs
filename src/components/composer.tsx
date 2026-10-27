@@ -1,13 +1,15 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useActionState } from "react";
+import { MarkdownToolbar, applyShortcut } from "@/components/markdown-toolbar";
 import { MarkdownView } from "@/components/markdown-view";
 import { NativeSelect } from "@/components/forum-bits";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { wrapSelection, type Edit } from "@/lib/markdown-edit";
 import type { ActionState } from "@/lib/types";
 
 export function Composer({
@@ -40,6 +42,26 @@ export function Composer({
   const [state, formAction, pending] = useActionState(action, null);
   const [content, setContent] = useState(initialContent);
   const [preview, setPreview] = useState(false);
+  const [panel, setPanel] = useState<"link" | "image" | "video" | null>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  function applyEdit(edit: Edit) {
+    setContent(edit.text);
+    requestAnimationFrame(() => {
+      const el = textareaRef.current;
+      if (!el) return;
+      el.focus();
+      el.setSelectionRange(edit.start, edit.end);
+    });
+  }
+
+  function shortcut(action: "bold" | "italic" | "link") {
+    if (action === "link") return setPanel("link");
+    const el = textareaRef.current;
+    if (!el) return;
+    const wrap = action === "bold" ? ["**", "加粗文字"] : ["*", "斜体文字"];
+    applyEdit(wrapSelection(el.value, el.selectionStart, el.selectionEnd, wrap[0], wrap[0], wrap[1]));
+  }
 
   return (
     <form action={formAction} className="space-y-3">
@@ -73,6 +95,16 @@ export function Composer({
             {preview ? "返回编辑" : "预览"}
           </Button>
         </div>
+        {preview ? null : (
+          <MarkdownToolbar
+            textareaRef={textareaRef}
+            value={content}
+            onEdit={applyEdit}
+            disabled={preview}
+            panel={panel}
+            setPanel={setPanel}
+          />
+        )}
         {preview ? (
           <div className="min-h-28 rounded-lg border bg-card px-3 py-2">
             {content.trim() ? <MarkdownView content={content} /> : <p className="text-sm text-muted-foreground">还没有内容</p>}
@@ -80,9 +112,11 @@ export function Composer({
         ) : (
           <Textarea
             id={postId ? `content-${postId}` : "content"}
+            ref={textareaRef}
             name="content"
             required
             value={content}
+            onKeyDown={(event) => applyShortcut(event, shortcut)}
             onChange={(event) => setContent(event.target.value)}
             placeholder={placeholder}
             className={compact ? "min-h-28 text-base md:text-base" : "min-h-40 text-base md:text-base"}
@@ -91,8 +125,10 @@ export function Composer({
         {state?.fieldErrors?.content ? <p className="text-sm text-destructive">{state.fieldErrors.content}</p> : null}
       </div>
       <details className="text-xs text-muted-foreground">
-        <summary className="cursor-pointer">Markdown 说明</summary>
-        <p className="mt-1">支持标题、列表、引用、链接、行内代码和代码块。原始 HTML 会被去掉。</p>
+        <summary className="cursor-pointer">格式说明</summary>
+        <p className="mt-1">
+          上面的按钮可以插入加粗、斜体、小标题、引用、列表、代码、链接、图片和视频，也可以直接手写 Markdown。图片和视频填的是网络地址，视频支持哔哩哔哩、YouTube 和 mp4、webm 直链。原始 HTML 会被去掉。
+        </p>
       </details>
       {state?.error ? <p className="text-sm text-destructive">{state.error}</p> : null}
       <Button type="submit" disabled={pending} className="h-10 px-4">
