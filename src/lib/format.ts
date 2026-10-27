@@ -60,6 +60,28 @@ export function excerpt(text: string, limit = 90) {
   return `${flat.slice(0, limit)}…`;
 }
 
+export function plainText(markdown: string) {
+  return markdown
+    .replace(/```[^\n]*\n?/g, " ")
+    .replace(/!\[([^\]]*)\]\([^)]*\)/g, "$1")
+    .replace(/\[([^\]]*)\]\([^)]*\)/g, "$1")
+    .replace(/<[^>]+>/g, " ")
+    .replace(/^[ \t]*(?:#{1,6}|>+|[-*+]|\d+\.)[ \t]+/gm, "")
+    .replace(/[*_`~|]/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+// skipTitle：标题不填时取的是正文开头，预览从标题之后接着取，避免同一句话出现两遍。
+export function previewText(markdown: string, limit = 50, skipTitle = "") {
+  let text = plainText(markdown);
+  const title = skipTitle.replace(/…$/, "").trim();
+  if (title && text.startsWith(title)) text = text.slice(title.length).trim();
+  const chars = Array.from(text);
+  if (chars.length <= limit) return chars.join("");
+  return `${chars.slice(0, limit).join("")}…`;
+}
+
 export function deriveTitle(content: string, limit = 40) {
   for (const line of content.split("\n")) {
     const text = line

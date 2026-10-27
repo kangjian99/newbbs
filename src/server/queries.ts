@@ -1,7 +1,7 @@
 import "server-only";
 import { ROOT_REPLY_PAGE_SIZE } from "@/lib/constants";
 import { dbAll, dbGet, dialect } from "@/lib/db";
-import { likeContains, shanghaiMidnight, snippetAround } from "@/lib/format";
+import { likeContains, previewText, shanghaiMidnight, snippetAround } from "@/lib/format";
 import { canReplyToThread, isStaff } from "@/lib/permissions";
 import type { BoardPostRole, BoardSummary, PostDTO, PublicUser, Role, ThreadSummary } from "@/lib/types";
 
@@ -23,9 +23,11 @@ type ThreadRow = {
   last_username: string | null;
   last_nickname: string | null;
   unread: number;
+  preview_source: string | null;
 };
 
 function mapThread(row: ThreadRow): ThreadSummary {
+  const preview = previewText(row.preview_source ?? "", 50, row.title);
   return {
     id: row.id,
     title: row.title,
@@ -44,6 +46,7 @@ function mapThread(row: ThreadRow): ThreadSummary {
     lastUsername: row.last_username,
     lastNickname: row.last_nickname,
     unread: row.unread === 1,
+    preview,
   };
 }
 
@@ -54,6 +57,10 @@ const threadSelect = `
     b.slug AS board_slug, b.name AS board_name,
     au.username AS author_username, au.nickname AS author_nickname, au.avatar_hue AS author_hue,
     lu.username AS last_username, lu.nickname AS last_nickname,
+    (
+      SELECT substr(p.content, 1, 1000) FROM posts p
+      WHERE p.thread_id = t.id AND p.is_op = 1 AND p.deleted_at IS NULL AND p.hidden_at IS NULL
+    ) AS preview_source,
     CASE
       WHEN ? = '' THEN 0
       WHEN t.last_post_user_id = ? THEN 0
