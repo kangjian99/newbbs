@@ -35,7 +35,7 @@ export function ThreadList({ threads, showBoard = false }: { threads: ThreadSumm
               <p className="cjk mt-0.5 text-sm leading-6 text-muted-foreground">{thread.preview}</p>
             ) : null}
             <p className="text-xs leading-5 text-muted-foreground">
-              <Link href={`/members/${thread.authorUsername}`} className="hover:text-foreground">{thread.authorNickname}</Link>
+              <Link href={`/members/${thread.authorUsername}`} className="text-sm font-bold text-foreground hover:text-primary">{thread.authorNickname}</Link>
               {" · "}
               <TimeText value={thread.createdAt} />
               {" · "}
