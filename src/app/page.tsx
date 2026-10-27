@@ -45,15 +45,6 @@ export default async function HomePage({
               自你上次访问以来，有 {fresh} 个主题有了新回复。
             </p>
           ) : null}
-          {!user ? (
-            <p className="mb-4 rounded-lg border border-primary/20 bg-primary/5 px-3 py-2 text-sm">
-              未登录只能看到标题和前 {PREVIEW_LENGTH.guest} 个字。
-              <Link href="/login?next=/" className="mx-1 text-primary underline-offset-4 hover:underline">登录</Link>
-              或
-              <Link href="/register" className="mx-1 text-primary underline-offset-4 hover:underline">注册</Link>
-              后可阅读全文，列表预览也会延长到 {PREVIEW_LENGTH.member} 个字。
-            </p>
-          ) : null}
           {user ? (
             <div className="mb-3 flex gap-2 text-sm">
               <Link href="/" className={!unreadOnly ? "font-medium text-primary" : "text-muted-foreground"}>全部</Link>
