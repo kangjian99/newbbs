@@ -63,7 +63,7 @@ export function excerpt(text: string, limit = 90) {
 export function snippetAround(text: string, query: string, radius = 42) {
   const flat = text.replace(/\s+/g, " ").trim();
   if (!query) return excerpt(flat, radius * 2);
-  const index = flat.indexOf(query);
+  const index = flat.toLowerCase().indexOf(query.toLowerCase());
   if (index < 0) return excerpt(flat, radius * 2);
   const start = Math.max(0, index - radius);
   const end = Math.min(flat.length, index + query.length + radius);

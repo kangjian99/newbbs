@@ -82,7 +82,8 @@ export async function consumeCaptcha(id: string, answer: string) {
     [id],
   );
   if (!row || row.used_at || row.expires_at < Date.now()) return false;
-  await dbRun("UPDATE captcha_challenges SET used_at = ? WHERE id = ?", [Date.now(), id]);
+  const claimed = await dbRun("UPDATE captcha_challenges SET used_at = ? WHERE id = ? AND used_at IS NULL", [Date.now(), id]);
+  if (claimed.changes !== 1) return false;
   const normalized = normalizeCaptchaAnswer(answer);
   return safeEqual(sha256(`${id}:${normalized}`), row.answer_hash);
 }
@@ -100,7 +101,8 @@ export async function consumeFormToken(id: string) {
     [id],
   );
   if (!row || row.used_at) return "invalid" as const;
-  await dbRun("UPDATE form_tokens SET used_at = ? WHERE id = ?", [Date.now(), id]);
+  const claimed = await dbRun("UPDATE form_tokens SET used_at = ? WHERE id = ? AND used_at IS NULL", [Date.now(), id]);
+  if (claimed.changes !== 1) return "invalid" as const;
   const elapsed = Date.now() - row.issued_at;
   if (elapsed < FORM_MIN) return "fast" as const;
   if (elapsed > FORM_MAX) return "expired" as const;

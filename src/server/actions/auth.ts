@@ -3,18 +3,21 @@
 import { redirect } from "next/navigation";
 import { fail } from "@/lib/action";
 import {
-  adminEmail,
+  adminSetupToken,
   createSession,
   destroySession,
   findUserByAccount,
   findUserById,
   getCurrentUser,
+  hasAnyAdmin,
+  matchesAdminSetupToken,
+  revokeOtherSessions,
 } from "@/lib/auth";
 import { consumeCaptcha, consumeFormToken } from "@/lib/captcha";
 import { dbGet, dbRun } from "@/lib/db";
 import { createId } from "@/lib/ids";
 import { hashPassword, passwordProblem, verifyPassword } from "@/lib/password";
-import { isLocalIp, recordAttempt, tooMany } from "@/lib/rate-limit";
+import { countAttempts, isLocalIp, recordAttempt, tooMany } from "@/lib/rate-limit";
 import { clientIp, safeNext } from "@/lib/request";
 import type { ActionState } from "@/lib/types";
 import {
@@ -38,17 +41,21 @@ export async function loginAction(_prev: ActionState, formData: FormData): Promi
     const accountKey = parsed.data.account.toLowerCase();
     const windowMs = 15 * 60_000;
     if (
-      (await tooMany("login", `ip:${ip}`, 10, windowMs)) ||
-      (await tooMany("login", `acct:${accountKey}`, 10, windowMs))
+      (await tooMany("login", `ip:${ip}`, 20, windowMs)) ||
+      (await tooMany("login", `ipacct:${ip}:${accountKey}`, 8, windowMs))
     ) {
       return { error: "尝试过于频繁，请稍后再试。" };
     }
+    // A hard per-account limit would let anyone lock a victim out, so account-wide failures only add delay.
+    const accountFailures = await countAttempts("login", `acct:${accountKey}`, windowMs);
+    const delay = accountFailures >= 10 ? Math.min(3_000, 350 + (accountFailures - 9) * 250) : 350;
     const user = await findUserByAccount(parsed.data.account);
     const matched = await verifyPassword(parsed.data.password, user?.password_hash ?? null);
     if (!user || !matched) {
       await recordAttempt("login", `ip:${ip}`);
+      await recordAttempt("login", `ipacct:${ip}:${accountKey}`);
       await recordAttempt("login", `acct:${accountKey}`);
-      await new Promise((resolve) => setTimeout(resolve, 350));
+      await new Promise((resolve) => setTimeout(resolve, delay));
       return { error: "用户名或密码不正确" };
     }
     await createSession(user.id, { rotateVisit: true });
@@ -70,6 +77,7 @@ export async function registerAction(_prev: ActionState, formData: FormData): Pr
       captchaId: formData.get("captchaId"),
       formToken: formData.get("formToken"),
       faxNumber: formData.get("faxNumber"),
+      adminToken: formData.get("adminToken") ?? undefined,
     });
     if (!parsed.success) return { error: "请检查输入", fieldErrors: fieldErrors(parsed.error) };
     const data = parsed.data;
@@ -100,16 +108,31 @@ export async function registerAction(_prev: ActionState, formData: FormData): Pr
     const emailTaken = await dbGet("SELECT id FROM users WHERE email = ?", [email]);
     if (emailTaken) return { error: "这个邮箱已注册", fieldErrors: { email: "这个邮箱已注册" } };
 
+    let role: "admin" | "user" = "user";
+    const adminToken = (data.adminToken ?? "").trim();
+    if (adminToken) {
+      if (!adminSetupToken() || (await hasAnyAdmin()) || !matchesAdminSetupToken(adminToken)) {
+        return { error: "管理员口令无效", fieldErrors: { adminToken: "管理员口令无效" } };
+      }
+      role = "admin";
+    }
+
     const now = Date.now();
     const id = createId();
-    const role = adminEmail() && email === adminEmail() ? "admin" : "user";
-    await dbRun(
-      `INSERT INTO users (
-        id, username, email, password_hash, nickname, bio, avatar_hue, role,
-        created_at, last_seen_at, last_visit_at, prev_visit_at
-      ) VALUES (?, ?, ?, ?, ?, '', ?, ?, ?, ?, ?, ?)`,
-      [id, username, email, hashPassword(data.password), data.nickname, Math.floor(Math.random() * 360), role, now, now, now, now],
-    );
+    const passwordHash = await hashPassword(data.password);
+    try {
+      await dbRun(
+        `INSERT INTO users (
+          id, username, email, password_hash, nickname, bio, avatar_hue, role,
+          created_at, last_seen_at, last_visit_at, prev_visit_at
+        ) VALUES (?, ?, ?, ?, ?, '', ?, ?, ?, ?, ?, ?)`,
+        [id, username, email, passwordHash, data.nickname, Math.floor(Math.random() * 360), role, now, now, now, now],
+      );
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "";
+      if (/unique|duplicate/i.test(message)) return { error: "用户名或邮箱刚刚已被注册，请换一个" };
+      throw error;
+    }
     await markAllThreadsRead(id);
     await createSession(id);
     redirect("/");
@@ -161,10 +184,11 @@ export async function changePasswordAction(_prev: ActionState, formData: FormDat
     const matched = await verifyPassword(parsed.data.currentPassword, row?.password_hash ?? null);
     if (!row || !matched) return { error: "当前密码不正确", fieldErrors: { currentPassword: "当前密码不正确" } };
     await dbRun("UPDATE users SET password_hash = ?, must_change_password = 0 WHERE id = ?", [
-      hashPassword(parsed.data.newPassword),
+      await hashPassword(parsed.data.newPassword),
       user.id,
     ]);
-    return { ok: "密码已更新" };
+    await revokeOtherSessions(user.id);
+    return { ok: "密码已更新，其他设备上的登录已退出" };
   } catch (error) {
     return fail(error);
   }

@@ -22,6 +22,7 @@ export const registerSchema = z
     captchaId: z.string().trim().min(8, "验证码已失效，请换一张"),
     formToken: z.string().trim().min(8, "页面已失效，请刷新后重试"),
     faxNumber: z.string().optional(),
+    adminToken: z.string().max(200).optional(),
   })
   .refine((data) => data.password === data.confirmPassword, {
     message: "两次输入的密码不一致",

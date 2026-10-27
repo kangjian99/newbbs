@@ -4,7 +4,7 @@ import { COMMON_PASSWORDS } from "@/lib/constants";
 const DUMMY_HASH = "$2b$10$GAkZrtJ/tc1QTh2y00ECX.D/8a2zLFwPmm17cDp.9N1XWxe37jh5u";
 
 export function hashPassword(password: string) {
-  return bcrypt.hashSync(password, 10);
+  return bcrypt.hash(password, 10);
 }
 
 export async function verifyPassword(password: string, hash: string | null) {
@@ -13,7 +13,7 @@ export async function verifyPassword(password: string, hash: string | null) {
 
 export function passwordProblem(password: string, username: string) {
   if (password.length < 8) return "密码至少 8 位";
-  if (password.length > 72) return "密码最多 72 位";
+  if (Buffer.byteLength(password, "utf8") > 72) return "密码过长：最多 72 个字节（一个汉字占 3 个字节）";
   if (!/[A-Za-z\u4e00-\u9fff]/.test(password) || !/[0-9]/.test(password)) {
     return "密码需要同时包含字母和数字";
   }

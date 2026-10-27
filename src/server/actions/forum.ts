@@ -4,9 +4,11 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { fail } from "@/lib/action";
 import { getCurrentUser } from "@/lib/auth";
+import { ForumError } from "@/lib/errors";
 import { isStaff } from "@/lib/permissions";
+import { recordAttempt, tooMany } from "@/lib/rate-limit";
 import { safeNext } from "@/lib/request";
-import type { ActionState } from "@/lib/types";
+import type { ActionState, Role } from "@/lib/types";
 import { boardSchema, fieldErrors, postSchema, reportSchema, reservedSlug, threadSchema } from "@/lib/validators";
 import { pageForPost } from "@/server/queries";
 import {
@@ -31,6 +33,20 @@ function refresh() {
   revalidatePath("/", "layout");
 }
 
+const HOUR = 60 * 60_000;
+
+const LIMITS = {
+  thread: { limit: 10, message: "发帖太频繁了，请稍后再试。" },
+  reply: { limit: 60, message: "回复太频繁了，请稍后再试。" },
+  report: { limit: 20, message: "举报太频繁了，请稍后再试。" },
+} as const;
+
+async function throttle(user: { id: string; role: Role }, kind: keyof typeof LIMITS) {
+  if (isStaff(user.role)) return;
+  const rule = LIMITS[kind];
+  if (await tooMany(kind, `user:${user.id}`, rule.limit, HOUR)) throw new ForumError(rule.message);
+}
+
 async function viewer() {
   const user = await getCurrentUser();
   if (!user) redirect("/login");
@@ -46,7 +62,9 @@ export async function createThreadAction(_prev: ActionState, formData: FormData)
       content: formData.get("content"),
     });
     if (!parsed.success) return { error: "请检查输入", fieldErrors: fieldErrors(parsed.error) };
+    await throttle(user, "thread");
     const created = await createThread({ ...parsed.data, authorId: user.id });
+    await recordAttempt("thread", `user:${user.id}`);
     refresh();
     redirect(`/threads/${created.threadId}`);
   } catch (error) {
@@ -61,12 +79,14 @@ export async function replyAction(_prev: ActionState, formData: FormData): Promi
     const parentId = String(formData.get("parentId") ?? "");
     const parsed = postSchema.safeParse({ content: formData.get("content"), parentId, title: "" });
     if (!parsed.success) return { error: "请检查输入", fieldErrors: fieldErrors(parsed.error) };
+    await throttle(user, "reply");
     const created = await createReply({
       threadId,
       authorId: user.id,
       parentId: parentId || null,
       content: parsed.data.content,
     });
+    await recordAttempt("reply", `user:${user.id}`);
     const page = await pageForPost(threadId, created.postId);
     refresh();
     redirect(`/threads/${threadId}?page=${page}#post-${created.postId}`);
@@ -141,7 +161,9 @@ export async function reportAction(_prev: ActionState, formData: FormData): Prom
       detail: formData.get("detail") ?? "",
     });
     if (!parsed.success) return { error: "请检查输入", fieldErrors: fieldErrors(parsed.error) };
+    await throttle(user, "report");
     await createReport({ ...parsed.data, reporterId: user.id });
+    await recordAttempt("report", `user:${user.id}`);
     refresh();
     return { ok: "已提交举报，版主会在审核队列里看到。" };
   } catch (error) {

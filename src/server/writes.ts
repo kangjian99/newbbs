@@ -145,12 +145,17 @@ export async function createReply(
       parentId = op?.id ?? null;
     }
     if (!parentId) throw new ForumError("找不到要回复的发言");
-    const parent = await db.get<{ id: string; thread_id: string; author_id: string; deleted_at: number | null }>(
-      "SELECT id, thread_id, author_id, deleted_at FROM posts WHERE id = ?",
-      [parentId],
-    );
+    const parent = await db.get<{
+      id: string;
+      thread_id: string;
+      author_id: string;
+      is_op: number;
+      deleted_at: number | null;
+      hidden_at: number | null;
+    }>("SELECT id, thread_id, author_id, is_op, deleted_at, hidden_at FROM posts WHERE id = ?", [parentId]);
     if (!parent || parent.thread_id !== input.threadId) throw new ForumError("要回复的发言不在这个主题里");
     if (parent.deleted_at) throw new ForumError("原发言已删除，不能再回复");
+    if (parent.hidden_at && parent.is_op !== 1 && !isStaff(actor.role)) throw new ForumError("原发言已被隐藏，不能再回复");
     if ((await parentDepth(db, parent.id)) + 1 > MAX_REPLY_DEPTH) {
       throw new ForumError("回复嵌套已达上限，请改回复更上层的发言");
     }

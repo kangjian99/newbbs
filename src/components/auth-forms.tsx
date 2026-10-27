@@ -119,15 +119,20 @@ export function RegisterForm({
         <Input id="captcha" name="captcha" required inputMode="numeric" autoComplete="off" className="h-10" placeholder="图中加法的结果" />
         {state?.fieldErrors?.captcha ? <p className="text-sm text-destructive">{state.fieldErrors.captcha}</p> : null}
       </div>
+      {adminState === "configured" ? (
+        <div className="space-y-1.5">
+          <Label htmlFor="adminToken">管理员口令（选填）</Label>
+          <Input id="adminToken" name="adminToken" type="password" autoComplete="off" className="h-10" />
+          <p className="text-xs leading-5 text-muted-foreground">当前还没有管理员。填写服务器环境变量 ADMIN_SETUP_TOKEN 的值，这个账号会成为管理员。普通会员留空即可。</p>
+          {state?.fieldErrors?.adminToken ? <p className="text-sm text-destructive">{state.fieldErrors.adminToken}</p> : null}
+        </div>
+      ) : null}
       <Errors state={state} />
       <Button type="submit" disabled={pending} className="h-10 w-full">
         {pending ? "提交中…" : "注册"}
       </Button>
       {adminState === "missing" ? (
-        <p className="text-sm text-muted-foreground">当前还没有管理员。请先在环境变量 ADMIN_EMAIL 里填写邮箱，再用该邮箱注册，这个账号会成为管理员。</p>
-      ) : null}
-      {adminState === "configured" ? (
-        <p className="text-sm text-muted-foreground">环境变量 ADMIN_EMAIL 已配置。用该邮箱注册的账号会成为管理员。</p>
+        <p className="text-sm text-muted-foreground">当前还没有管理员。请先在服务器环境变量 ADMIN_SETUP_TOKEN 里设置一串至少 16 位的随机口令，再用它注册第一位管理员。</p>
       ) : null}
       <p className="text-sm text-muted-foreground">
         已有账号？ <Link href="/login" className="text-primary">登录</Link>

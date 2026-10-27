@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { RegisterForm } from "@/components/auth-forms";
 import { PageWidth } from "@/components/forum-bits";
-import { adminEmail, getCurrentUser, hasAnyAdmin } from "@/lib/auth";
+import { adminSetupToken, getCurrentUser, hasAnyAdmin } from "@/lib/auth";
 import { createCaptcha, createFormToken } from "@/lib/captcha";
 
 export const metadata: Metadata = { title: "注册" };
@@ -14,7 +14,7 @@ export default async function RegisterPage() {
     createFormToken(),
     hasAnyAdmin(),
   ]);
-  const adminState = adminExists ? "ready" : adminEmail() ? "configured" : "missing";
+  const adminState = adminExists ? "ready" : adminSetupToken() ? "configured" : "missing";
   return (
     <PageWidth size="narrow">
       <h1 className="mb-1 text-2xl font-semibold">注册</h1>
