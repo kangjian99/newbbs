@@ -3,7 +3,7 @@ import { ROOT_REPLY_PAGE_SIZE } from "@/lib/constants";
 import { dbAll, dbGet, dialect } from "@/lib/db";
 import { likeContains, previewText, shanghaiMidnight, snippetAround } from "@/lib/format";
 import { canReplyToThread, isStaff } from "@/lib/permissions";
-import type { BoardSummary, PostDTO, PublicUser, Role, ThreadSummary } from "@/lib/types";
+import type { BoardPostRole, BoardSummary, PostDTO, PublicUser, Role, ThreadSummary } from "@/lib/types";
 
 type ThreadRow = {
   id: string;
@@ -27,7 +27,7 @@ type ThreadRow = {
 };
 
 function mapThread(row: ThreadRow): ThreadSummary {
-  const preview = previewText(row.preview_source ?? "");
+  const preview = previewText(row.preview_source ?? "", 50, row.title);
   return {
     id: row.id,
     title: row.title,
@@ -46,7 +46,7 @@ function mapThread(row: ThreadRow): ThreadSummary {
     lastUsername: row.last_username,
     lastNickname: row.last_nickname,
     unread: row.unread === 1,
-    preview: preview === row.title ? "" : preview,
+    preview,
   };
 }
 
@@ -120,12 +120,13 @@ export async function listBoards() {
     name: string;
     description: string;
     sort_order: number;
+    post_role: BoardPostRole;
     thread_count: number;
     last_thread_id: string | null;
     last_thread_title: string | null;
     last_post_at: number | null;
   }>(
-    `SELECT b.id, b.slug, b.name, b.description, b.sort_order,
+    `SELECT b.id, b.slug, b.name, b.description, b.sort_order, b.post_role,
       (SELECT COUNT(*) FROM threads t WHERE t.board_id = b.id AND t.deleted_at IS NULL) AS thread_count,
       (SELECT t.id FROM threads t WHERE t.board_id = b.id AND t.deleted_at IS NULL ORDER BY t.last_post_at DESC LIMIT 1) AS last_thread_id,
       (SELECT t.title FROM threads t WHERE t.board_id = b.id AND t.deleted_at IS NULL ORDER BY t.last_post_at DESC LIMIT 1) AS last_thread_title,
@@ -139,6 +140,7 @@ export async function listBoards() {
     name: row.name,
     description: row.description,
     sortOrder: row.sort_order,
+    postRole: row.post_role,
     threadCount: Number(row.thread_count),
     lastThreadId: row.last_thread_id,
     lastThreadTitle: row.last_thread_title,
@@ -147,8 +149,8 @@ export async function listBoards() {
 }
 
 export async function boardBySlug(slug: string) {
-  return dbGet<{ id: string; slug: string; name: string; description: string; sort_order: number }>(
-    "SELECT id, slug, name, description, sort_order FROM boards WHERE slug = ?",
+  return dbGet<{ id: string; slug: string; name: string; description: string; sort_order: number; post_role: BoardPostRole }>(
+    "SELECT id, slug, name, description, sort_order, post_role FROM boards WHERE slug = ?",
     [slug],
   );
 }

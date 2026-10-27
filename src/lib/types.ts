@@ -1,5 +1,7 @@
 export type Role = "user" | "moderator" | "admin";
 
+export type BoardPostRole = "user" | "moderator" | "admin";
+
 export type PublicUser = {
   id: string;
   username: string;
@@ -26,6 +28,7 @@ export type BoardSummary = {
   name: string;
   description: string;
   sortOrder: number;
+  postRole: BoardPostRole;
   threadCount: number;
   lastThreadId: string | null;
   lastThreadTitle: string | null;

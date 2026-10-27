@@ -53,7 +53,11 @@ export const passwordChangeSchema = z
 
 export const threadSchema = z.object({
   boardId: z.string().trim().min(1, "请选择版块"),
-  title: z.string().trim().min(2, "标题至少 2 个字").max(60, "标题最多 60 个字"),
+  title: z
+    .string()
+    .trim()
+    .max(60, "标题最多 60 个字")
+    .refine((value) => value === "" || value.length >= 2, "标题至少 2 个字"),
   content: z.string().trim().min(1, "正文不能为空").max(8000, "正文最多 8000 字"),
 });
 
@@ -73,6 +77,7 @@ export const boardSchema = z.object({
     .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, "地址只能使用小写字母、数字和连字符"),
   description: z.string().trim().max(200, "简介最多 200 字"),
   sortOrder: z.coerce.number().int().min(0, "排序不能为负").max(9999),
+  postRole: z.enum(["user", "moderator", "admin"], { message: "请选择发帖权限" }),
 });
 
 export const boardUpdateSchema = boardSchema.extend({

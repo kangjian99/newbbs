@@ -9,7 +9,7 @@ import { ThreadDiscussion } from "@/components/thread-discussion";
 import { ThreadVisit } from "@/components/thread-visit";
 import { Badge } from "@/components/ui/badge";
 import { getCurrentUser } from "@/lib/auth";
-import { canReplyToThread, isStaff } from "@/lib/permissions";
+import { canPostInBoard, canReplyToThread, isStaff } from "@/lib/permissions";
 import { parsePage, withQuery } from "@/lib/paging";
 import { getThread, listBoards, threadDiscussion } from "@/server/queries";
 
@@ -70,7 +70,9 @@ export default async function ThreadPage({
             pinned={thread.is_pinned === 1}
             locked={locked}
             deleted={deleted}
-            boards={boards.map((board) => ({ id: board.id, name: board.name }))}
+            boards={boards
+              .filter((board) => board.id === thread.board_id || canPostInBoard(user?.role, board.postRole))
+              .map((board) => ({ id: board.id, name: board.name }))}
           />
         </div>
       ) : null}
