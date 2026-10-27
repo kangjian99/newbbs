@@ -64,7 +64,7 @@ export default async function MemberPage({ params }: { params: Promise<{ usernam
               {profile.replies.map((reply) => (
                 <li key={reply.id}>
                   <Link href={`/threads/${reply.threadId}#post-${reply.id}`} className="text-sm font-medium hover:text-primary">{reply.threadTitle}</Link>
-                  <p className="cjk text-sm text-muted-foreground">{excerpt(reply.content, 70)}</p>
+                  {viewer ? <p className="cjk text-sm text-muted-foreground">{excerpt(reply.content, 70)}</p> : null}
                 </li>
               ))}
             </ul>

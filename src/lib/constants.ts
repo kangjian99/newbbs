@@ -7,6 +7,7 @@ export const SITE = {
 };
 
 export const THREAD_PAGE_SIZE = 10;
+export const PREVIEW_LENGTH = { guest: 50, member: 100 } as const;
 export const ROOT_REPLY_PAGE_SIZE = 5;
 export const MEMBER_PAGE_SIZE = 24;
 export const SEARCH_PAGE_SIZE = 10;

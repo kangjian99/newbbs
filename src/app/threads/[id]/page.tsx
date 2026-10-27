@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { Lock, Pin } from "lucide-react";
 import { Crumbs, PageWidth, Pagination } from "@/components/forum-bits";
 import { ReportThread } from "@/components/report-thread";
@@ -29,8 +29,9 @@ export default async function ThreadPage({
 }) {
   const { id } = await params;
   const query = await searchParams;
-  const thread = await getThread(id);
   const user = await getCurrentUser();
+  if (!user) redirect(`/login?next=${encodeURIComponent(`/threads/${id}`)}`);
+  const thread = await getThread(id);
   if (!thread || (thread.deleted_at && !isStaff(user?.role))) notFound();
   const page = parsePage(query.page);
   const discussion = await threadDiscussion(id, page, user);
