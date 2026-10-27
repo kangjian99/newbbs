@@ -14,7 +14,7 @@ npm run dev
 
 浏览器打开 [http://127.0.0.1:43123](http://127.0.0.1:43123)。
 
-不填写 `DATABASE_URL` 时，数据放在本地 SQLite 文件 `data/forum.db`（已加入 `.gitignore`）。填写之后，应用在启动时连接 Postgres，并在空库里写入同一套演示数据。
+不填写 `DATABASE_URL` 时，数据放在本地 SQLite 文件 `data/forum.db`（已加入 `.gitignore`）。填写之后，应用在启动时连接 Postgres。开发模式下空库会写入演示数据；生产模式（`next start`）默认不写入。
 
 生产构建：
 
@@ -32,7 +32,7 @@ npm start
 | `DATABASE_URL` | 运行时连接。Neon 请用带 `-pooler` 的地址。留空则使用 SQLite。 |
 | `DATABASE_URL_DIRECT` | 迁移用的非 pooler 直连。不填则迁移也走 `DATABASE_URL`。也认 `DIRECT_URL`。 |
 | `ADMIN_EMAIL` | 用这个邮箱注册，或之后用这个邮箱登录，账号会成为管理员。页面上不会打出这个邮箱。 |
-| `SEED_DEMO` | 空库是否写入演示数据。默认会写入。设为 `false` 得到空论坛。 |
+| `SEED_DEMO` | 空库是否写入演示数据。不填时开发模式写入、生产模式不写入。设为 `true` 或 `false` 可以强制。 |
 | `AUTH_SECRET` | 当前会话不依赖它。生产环境可以留一长串随机值，供以后扩展。 |
 
 Neon 项目（非机密）：`web-bbs`（id `rapid-bar-49860901`），区域 AWS ap-southeast-1，数据库 `neondb`，角色 `neondb_owner`。
@@ -43,15 +43,13 @@ Neon 项目（非机密）：`web-bbs`（id `rapid-bar-49860901`），区域 AWS
 
 有两条路，可以同时用。
 
-**演示账号（默认）。** 空库会种入管理员：
+**演示账号（仅开发模式默认）。** 开发模式下空库会种入管理员：
 
 - 用户名 `admin`
 - 密码 `admin123456`
 - 邮箱 `admin@xiangyi.local`
 
-这个账号带有「必须修改密码」标记。登录页会显示上述口令，登录后顶部有提示，请到「个人资料」里换成自己的密码。改完之后，登录页不再展示演示口令。
-
-其他演示账号的密码都是 `demo123456`：版主 `lin`，会员 `he`、`su`、`zhao`、`miao`、`qiao`、`guang`。这些口令只适合本地和演示。公开访问之前必须改掉。
+其他演示账号的密码都是 `demo123456`：版主 `lin`，会员 `he`、`su`、`zhao`、`miao`、`qiao`、`guang`。所有演示账号都带有「必须修改密码」标记，登录后顶部有提示。开发模式下，admin 改密码之前登录页会显示这些口令；生产模式下登录页从不显示。这些口令只适合本地和演示，生产环境如果用 `SEED_DEMO=true` 强制写入，务必立刻全部改掉。
 
 **用邮箱指定管理员。** 在 `.env.local` 设置 `ADMIN_EMAIL`。两种情况会把账号升为管理员：
 

@@ -66,7 +66,8 @@ export function directDatabaseUrl() {
 export function shouldSeedDemo() {
   const flag = process.env.SEED_DEMO?.trim().toLowerCase();
   if (flag === "0" || flag === "false" || flag === "no") return false;
-  return true;
+  if (flag === "1" || flag === "true" || flag === "yes") return true;
+  return process.env.NODE_ENV !== "production";
 }
 
 function safeDbError(error: unknown) {

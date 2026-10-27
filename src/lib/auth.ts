@@ -131,6 +131,7 @@ export async function countUnreadNotifications(userId: string) {
 }
 
 export async function hasDemoAdmin() {
+  if (process.env.NODE_ENV === "production") return false;
   const row = await dbGet<{ must_change_password: number }>(
     "SELECT must_change_password FROM users WHERE username = ?",
     ["admin"],

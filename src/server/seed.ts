@@ -60,13 +60,13 @@ async function insertSeed(tx: Sql, adminHash: string, demoHash: string) {
   const ago = (hours: number) => now - Math.round(hours * hour);
   const users: UserSeed[] = [
     { id: "usr_admin", username: "admin", email: DEMO_ADMIN.email, nickname: "陈衡", role: "admin", hue: 152, bio: "巷议站长。负责版务，也负责把服务器按时叫醒。", mustChange: 1, hash: adminHash },
-    { id: "usr_lin", username: "lin", email: "lin@xiangyi.local", nickname: "小林", role: "moderator", hue: 200, bio: "技术交流版主。喜欢把问题写清楚再动手。", mustChange: 0, hash: demoHash },
-    { id: "usr_he", username: "he", email: "he@xiangyi.local", nickname: "阿禾", role: "user", hue: 28, bio: "在上海做设计，周末会骑车。", mustChange: 0, hash: demoHash },
-    { id: "usr_su", username: "su", email: "su@xiangyi.local", nickname: "苏晚", role: "user", hue: 330, bio: "编辑。最近在重读八十年代的小说。", mustChange: 0, hash: demoHash },
-    { id: "usr_zhao", username: "zhao", email: "zhao@xiangyi.local", nickname: "老赵", role: "user", hue: 45, bio: "写了十几年后端，现在带两个实习生。", mustChange: 0, hash: demoHash },
-    { id: "usr_miao", username: "miao", email: "miao@xiangyi.local", nickname: "苗苗", role: "user", hue: 280, bio: "刚毕业，正在学做饭，也在学把报错读完。", mustChange: 0, hash: demoHash },
-    { id: "usr_qiao", username: "qiao", email: "qiao@xiangyi.local", nickname: "乔安", role: "user", hue: 190, bio: "播客听众，偶尔自己录音。", mustChange: 0, hash: demoHash },
-    { id: "usr_guang", username: "guang", email: "guang@xiangyi.local", nickname: "优惠君", role: "user", hue: 12, bio: "", mustChange: 0, hash: demoHash },
+    { id: "usr_lin", username: "lin", email: "lin@xiangyi.local", nickname: "小林", role: "moderator", hue: 200, bio: "技术交流版主。喜欢把问题写清楚再动手。", mustChange: 1, hash: demoHash },
+    { id: "usr_he", username: "he", email: "he@xiangyi.local", nickname: "阿禾", role: "user", hue: 28, bio: "在上海做设计，周末会骑车。", mustChange: 1, hash: demoHash },
+    { id: "usr_su", username: "su", email: "su@xiangyi.local", nickname: "苏晚", role: "user", hue: 330, bio: "编辑。最近在重读八十年代的小说。", mustChange: 1, hash: demoHash },
+    { id: "usr_zhao", username: "zhao", email: "zhao@xiangyi.local", nickname: "老赵", role: "user", hue: 45, bio: "写了十几年后端，现在带两个实习生。", mustChange: 1, hash: demoHash },
+    { id: "usr_miao", username: "miao", email: "miao@xiangyi.local", nickname: "苗苗", role: "user", hue: 280, bio: "刚毕业，正在学做饭，也在学把报错读完。", mustChange: 1, hash: demoHash },
+    { id: "usr_qiao", username: "qiao", email: "qiao@xiangyi.local", nickname: "乔安", role: "user", hue: 190, bio: "播客听众，偶尔自己录音。", mustChange: 1, hash: demoHash },
+    { id: "usr_guang", username: "guang", email: "guang@xiangyi.local", nickname: "优惠君", role: "user", hue: 12, bio: "", mustChange: 1, hash: demoHash },
   ];
   const visit = ago(36);
   for (const user of users) {
