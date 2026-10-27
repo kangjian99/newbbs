@@ -58,6 +58,9 @@ export async function loginAction(_prev: ActionState, formData: FormData): Promi
       await new Promise((resolve) => setTimeout(resolve, delay));
       return { error: "用户名或密码不正确" };
     }
+    if (user.banned_at) {
+      return { error: user.ban_reason ? `账号已被封禁：${user.ban_reason}` : "账号已被封禁，如有疑问请联系管理员。" };
+    }
     await createSession(user.id, { rotateVisit: true });
     redirect(safeNext(formData.get("next")));
   } catch (error) {

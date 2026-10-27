@@ -26,7 +26,12 @@ export default async function BoardsPage() {
           <article key={board.id} className="border-b px-4 py-4 last:border-b-0">
             <div className="flex flex-wrap items-baseline justify-between gap-2">
               <Link href={`/boards/${board.slug}`} className="text-lg font-medium hover:text-primary">{board.name}</Link>
-              <span className="text-sm text-muted-foreground">{board.threadCount} 个主题</span>
+              <span className="flex items-center gap-3 text-sm text-muted-foreground">
+                {board.threadCount} 个主题
+                {user?.role === "admin" ? (
+                  <Link href={`/boards/${board.slug}/edit`} className="text-primary hover:underline">编辑</Link>
+                ) : null}
+              </span>
             </div>
             <p className="mt-1 text-sm text-muted-foreground">{board.description}</p>
             {board.lastThreadTitle && board.lastThreadId ? (

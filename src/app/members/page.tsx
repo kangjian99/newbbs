@@ -44,6 +44,7 @@ export default async function MembersPage({
                   <span className="flex flex-wrap items-center gap-2">
                     <span className="font-medium">{member.nickname}</span>
                     {member.role !== "user" ? <Badge variant="secondary">{ROLE_LABEL[member.role]}</Badge> : null}
+                    {member.banned ? <Badge variant="destructive">已封禁</Badge> : null}
                   </span>
                   <span className="block text-xs text-muted-foreground">@{member.username}</span>
                   <span className="mt-1 block text-sm text-muted-foreground">

@@ -45,9 +45,14 @@ export default async function BoardPage({
           <h1 className="text-2xl font-semibold">{board.name}</h1>
           <p className="text-sm text-muted-foreground">{board.description}</p>
         </div>
+        <div className="flex gap-2">
+          {user?.role === "admin" ? (
+            <Button asChild variant="outline" className="h-10"><Link href={`/boards/${board.slug}/edit`}>编辑版块</Link></Button>
+          ) : null}
         <Button asChild className="h-10">
           <Link href={user ? `/threads/new?board=${board.slug}` : `/login?next=${encodeURIComponent(`/threads/new?board=${board.slug}`)}`}>发布主题</Link>
         </Button>
+        </div>
       </div>
       {threads.length === 0 ? (
         <EmptyState title="这个版块还没有主题">来写第一篇。</EmptyState>
