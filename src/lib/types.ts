@@ -50,6 +50,7 @@ export type ThreadSummary = {
   lastUsername: string | null;
   lastNickname: string | null;
   unread: boolean;
+  preview: string;
 };
 
 export type PostDTO = {

@@ -60,6 +60,24 @@ export function excerpt(text: string, limit = 90) {
   return `${flat.slice(0, limit)}…`;
 }
 
+export function plainText(markdown: string) {
+  return markdown
+    .replace(/```[^\n]*\n?/g, " ")
+    .replace(/!\[([^\]]*)\]\([^)]*\)/g, "$1")
+    .replace(/\[([^\]]*)\]\([^)]*\)/g, "$1")
+    .replace(/<[^>]+>/g, " ")
+    .replace(/^[ \t]*(?:#{1,6}|>+|[-*+]|\d+\.)[ \t]+/gm, "")
+    .replace(/[*_`~|]/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+export function previewText(markdown: string, limit = 50) {
+  const chars = Array.from(plainText(markdown));
+  if (chars.length <= limit) return chars.join("");
+  return `${chars.slice(0, limit).join("")}…`;
+}
+
 export function snippetAround(text: string, query: string, radius = 42) {
   const flat = text.replace(/\s+/g, " ").trim();
   if (!query) return excerpt(flat, radius * 2);
