@@ -284,7 +284,7 @@ export async function threadDiscussion(threadId: string, page: number, viewer: P
       canDelete: Boolean(viewer && !deleted && (viewer.id === row.author_id || staff)),
       canHide: Boolean(staff && !deleted),
       canRestore: Boolean(staff && deleted),
-      canReply: Boolean(viewer && canReplyToThread(viewer.role, locked, threadDeleted) && !deleted && (!hidden || staff)),
+      canReply: Boolean(viewer && canReplyToThread(viewer.role, locked, threadDeleted) && !deleted && (!hidden || row.is_op === 1 || staff)),
       canReport: Boolean(viewer && viewer.id !== row.author_id && !deleted),
       parentNickname: row.parent_nickname,
     };
