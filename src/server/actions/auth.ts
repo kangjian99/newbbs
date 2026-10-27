@@ -16,7 +16,7 @@ import { consumeCaptcha, consumeFormToken } from "@/lib/captcha";
 import { dbGet, dbRun } from "@/lib/db";
 import { createId } from "@/lib/ids";
 import { hashPassword, passwordProblem, verifyPassword } from "@/lib/password";
-import { isLocalIp, recordAttempt, tooMany } from "@/lib/rate-limit";
+import { countAttempts, isLocalIp, recordAttempt, tooMany } from "@/lib/rate-limit";
 import { clientIp, safeNext } from "@/lib/request";
 import type { ActionState } from "@/lib/types";
 import {
@@ -40,17 +40,21 @@ export async function loginAction(_prev: ActionState, formData: FormData): Promi
     const accountKey = parsed.data.account.toLowerCase();
     const windowMs = 15 * 60_000;
     if (
-      (await tooMany("login", `ip:${ip}`, 10, windowMs)) ||
-      (await tooMany("login", `acct:${accountKey}`, 10, windowMs))
+      (await tooMany("login", `ip:${ip}`, 20, windowMs)) ||
+      (await tooMany("login", `ipacct:${ip}:${accountKey}`, 8, windowMs))
     ) {
       return { error: "尝试过于频繁，请稍后再试。" };
     }
+    // A hard per-account limit would let anyone lock a victim out, so account-wide failures only add delay.
+    const accountFailures = await countAttempts("login", `acct:${accountKey}`, windowMs);
+    const delay = accountFailures >= 10 ? Math.min(3_000, 350 + (accountFailures - 9) * 250) : 350;
     const user = await findUserByAccount(parsed.data.account);
     const matched = await verifyPassword(parsed.data.password, user?.password_hash ?? null);
     if (!user || !matched) {
       await recordAttempt("login", `ip:${ip}`);
+      await recordAttempt("login", `ipacct:${ip}:${accountKey}`);
       await recordAttempt("login", `acct:${accountKey}`);
-      await new Promise((resolve) => setTimeout(resolve, 350));
+      await new Promise((resolve) => setTimeout(resolve, delay));
       return { error: "用户名或密码不正确" };
     }
     await createSession(user.id, { rotateVisit: true });
