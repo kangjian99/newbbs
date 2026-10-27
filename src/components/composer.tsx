@@ -61,8 +61,8 @@ export function Composer({
       ) : null}
       {showTitle ? (
         <div className="space-y-1.5">
-          <Label htmlFor={postId ? `title-${postId}` : "title"}>标题</Label>
-          <Input id={postId ? `title-${postId}` : "title"} name="title" required minLength={2} maxLength={60} defaultValue={initialTitle} className="h-10" />
+          <Label htmlFor={postId ? `title-${postId}` : "title"}>标题（选填）</Label>
+          <Input id={postId ? `title-${postId}` : "title"} name="title" minLength={2} maxLength={60} defaultValue={initialTitle} className="h-10" placeholder={postId ? undefined : "不填则取正文第一行"} />
           {state?.fieldErrors?.title ? <p className="text-sm text-destructive">{state.fieldErrors.title}</p> : null}
         </div>
       ) : null}

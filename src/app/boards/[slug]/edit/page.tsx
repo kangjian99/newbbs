@@ -20,7 +20,7 @@ export default async function EditBoardPage({ params }: { params: Promise<{ slug
       <h1 className="mb-1 text-2xl font-semibold">编辑版块</h1>
       <p className="mb-6 text-sm text-muted-foreground">只有管理员可以修改版块。</p>
       <BoardForm
-        board={{ id: board.id, slug: board.slug, name: board.name, description: board.description, sortOrder: Number(board.sort_order) }}
+        board={{ id: board.id, slug: board.slug, name: board.name, description: board.description, sortOrder: Number(board.sort_order), postRole: board.post_role }}
       />
       <div className="mt-10">
         <DeleteBoardForm boardId={board.id} boardName={board.name} />

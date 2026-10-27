@@ -5,9 +5,12 @@ import { createBoardAction, deleteBoardAction, updateBoardAction } from "@/serve
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { NativeSelect } from "@/components/forum-bits";
 import { Textarea } from "@/components/ui/textarea";
+import { BOARD_POST_ROLES } from "@/lib/constants";
+import type { BoardPostRole } from "@/lib/types";
 
-type BoardValues = { id: string; slug: string; name: string; description: string; sortOrder: number };
+type BoardValues = { id: string; slug: string; name: string; description: string; sortOrder: number; postRole: BoardPostRole };
 
 export function BoardForm({ board }: { board?: BoardValues }) {
   const [state, action, pending] = useActionState(board ? updateBoardAction : createBoardAction, null);
@@ -35,6 +38,16 @@ export function BoardForm({ board }: { board?: BoardValues }) {
         <Label htmlFor="sortOrder">排序</Label>
         <Input id="sortOrder" name="sortOrder" type="number" min={0} defaultValue={board?.sortOrder ?? 10} className="h-10" />
         <p className="text-xs text-muted-foreground">数字越小越靠前。</p>
+      </div>
+      <div className="space-y-1.5">
+        <Label htmlFor="postRole">谁可以发布新主题</Label>
+        <NativeSelect id="postRole" name="postRole" defaultValue={board?.postRole ?? "user"}>
+          {BOARD_POST_ROLES.map((item) => (
+            <option key={item.value} value={item.value}>{item.label}</option>
+          ))}
+        </NativeSelect>
+        <p className="text-xs text-muted-foreground">只限制发新主题，回复不受影响。站务公告这类版块可以选“仅管理员”。</p>
+        {state?.fieldErrors?.postRole ? <p className="text-sm text-destructive">{state.fieldErrors.postRole}</p> : null}
       </div>
       {state?.error ? <p className="text-sm text-destructive">{state.error}</p> : null}
       <Button type="submit" disabled={pending} className="h-10">{board ? (pending ? "保存中…" : "保存修改") : pending ? "创建中…" : "创建版块"}</Button>

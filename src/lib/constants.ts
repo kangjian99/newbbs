@@ -13,6 +13,12 @@ export const SEARCH_PAGE_SIZE = 10;
 export const REPORT_PAGE_SIZE = 20;
 export const MAX_REPLY_DEPTH = 8;
 
+export const BOARD_POST_ROLES = [
+  { value: "user", label: "全体会员" },
+  { value: "moderator", label: "版主和管理员" },
+  { value: "admin", label: "仅管理员" },
+] as const;
+
 export const ROLE_LABEL: Record<Role, string> = {
   user: "会员",
   moderator: "版主",
