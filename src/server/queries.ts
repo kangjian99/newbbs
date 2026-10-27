@@ -1,6 +1,6 @@
 import "server-only";
 import { ROOT_REPLY_PAGE_SIZE } from "@/lib/constants";
-import { dbAll, dbGet } from "@/lib/db";
+import { dbAll, dbGet, dialect } from "@/lib/db";
 import { likeContains, shanghaiMidnight, snippetAround } from "@/lib/format";
 import { canReplyToThread, isStaff } from "@/lib/permissions";
 import type { BoardSummary, PostDTO, PublicUser, Role, ThreadSummary } from "@/lib/types";
@@ -315,11 +315,12 @@ export async function pageForPost(threadId: string, postId: string) {
 
 export async function searchThreads(query: string, page: number, pageSize: number) {
   const like = likeContains(query);
+  const op = dialect() === "postgres" ? "ILIKE" : "LIKE";
   const where = `t.deleted_at IS NULL AND (
-    t.title LIKE ? ESCAPE '!'
+    t.title ${op} ? ESCAPE '!'
     OR EXISTS (
       SELECT 1 FROM posts p
-      WHERE p.thread_id = t.id AND p.deleted_at IS NULL AND p.hidden_at IS NULL AND p.content LIKE ? ESCAPE '!'
+      WHERE p.thread_id = t.id AND p.deleted_at IS NULL AND p.hidden_at IS NULL AND p.content ${op} ? ESCAPE '!'
     )
   )`;
   const totalRow = await dbGet<{ c: number }>(`SELECT COUNT(*) AS c FROM threads t WHERE ${where}`, [like, like]);
@@ -336,13 +337,16 @@ export async function searchThreads(query: string, page: number, pageSize: numbe
   for (const row of rows) {
     const match = await dbGet<{ content: string }>(
       `SELECT content FROM posts
-       WHERE thread_id = ? AND deleted_at IS NULL AND hidden_at IS NULL AND content LIKE ? ESCAPE '!'
+       WHERE thread_id = ? AND deleted_at IS NULL AND hidden_at IS NULL AND content ${op} ? ESCAPE '!'
        ORDER BY created_at ASC LIMIT 1`,
       [row.id, like],
     );
     const fallback = match
       ? null
-      : await dbGet<{ content: string }>("SELECT content FROM posts WHERE thread_id = ? AND is_op = 1", [row.id]);
+      : await dbGet<{ content: string }>(
+          "SELECT content FROM posts WHERE thread_id = ? AND is_op = 1 AND deleted_at IS NULL AND hidden_at IS NULL",
+          [row.id],
+        );
     results.push({
       id: row.id,
       title: row.title,
