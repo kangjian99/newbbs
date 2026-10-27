@@ -3,7 +3,8 @@ import { dbGet, dbRun } from "@/lib/db";
 import { createId } from "@/lib/ids";
 
 export function isLocalIp(ip: string) {
-  return ip === "local" || ip === "127.0.0.1" || ip === "::1" || ip === "::ffff:127.0.0.1";
+  if (process.env.NODE_ENV === "production") return false;
+  return ip === "127.0.0.1" || ip === "::1" || ip === "::ffff:127.0.0.1";
 }
 
 export async function tooMany(action: string, key: string, limit: number, windowMs: number) {
