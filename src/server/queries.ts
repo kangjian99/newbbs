@@ -26,8 +26,8 @@ type ThreadRow = {
   preview_source: string | null;
 };
 
-function mapThread(row: ThreadRow): ThreadSummary {
-  const preview = previewText(row.preview_source ?? "", 50, row.title);
+function mapThread(row: ThreadRow, previewLimit: number): ThreadSummary {
+  const preview = previewText(row.preview_source ?? "", previewLimit, row.title);
   return {
     id: row.id,
     title: row.title,
@@ -81,6 +81,7 @@ export async function listThreads(options: {
   page: number;
   pageSize: number;
   order: "latest" | "board";
+  previewLimit: number;
 }) {
   const viewer = options.viewerId ?? "";
   const where = ["t.deleted_at IS NULL"];
@@ -110,7 +111,7 @@ export async function listThreads(options: {
     `${threadSelect} ${whereSql} ${orderSql} LIMIT ? OFFSET ?`,
     [...params, options.pageSize, offset],
   );
-  return { threads: rows.map(mapThread), total };
+  return { threads: rows.map((row) => mapThread(row, options.previewLimit)), total };
 }
 
 export async function listBoards() {
@@ -322,17 +323,21 @@ export async function pageForPost(threadId: string, postId: string) {
   return Math.floor(index / ROOT_REPLY_PAGE_SIZE) + 1;
 }
 
-export async function searchThreads(query: string, page: number, pageSize: number) {
+export async function searchThreads(query: string, page: number, pageSize: number, options: { titleOnly?: boolean } = {}) {
   const like = likeContains(query);
   const op = dialect() === "postgres" ? "ILIKE" : "LIKE";
-  const where = `t.deleted_at IS NULL AND (
+  const titleOnly = options.titleOnly === true;
+  const where = titleOnly
+    ? `t.deleted_at IS NULL AND t.title ${op} ? ESCAPE '!'`
+    : `t.deleted_at IS NULL AND (
     t.title ${op} ? ESCAPE '!'
     OR EXISTS (
       SELECT 1 FROM posts p
       WHERE p.thread_id = t.id AND p.deleted_at IS NULL AND p.hidden_at IS NULL AND p.content ${op} ? ESCAPE '!'
     )
   )`;
-  const totalRow = await dbGet<{ c: number }>(`SELECT COUNT(*) AS c FROM threads t WHERE ${where}`, [like, like]);
+  const whereParams = titleOnly ? [like] : [like, like];
+  const totalRow = await dbGet<{ c: number }>(`SELECT COUNT(*) AS c FROM threads t WHERE ${where}`, whereParams);
   const total = Number(totalRow?.c ?? 0);
   const rows = await dbAll<{ id: string; title: string; board_name: string; board_slug: string; last_post_at: number; reply_count: number }>(
     `SELECT t.id, t.title, b.name AS board_name, b.slug AS board_slug, t.last_post_at, t.reply_count
@@ -340,10 +345,22 @@ export async function searchThreads(query: string, page: number, pageSize: numbe
      WHERE ${where}
      ORDER BY t.last_post_at DESC
      LIMIT ? OFFSET ?`,
-    [like, like, pageSize, (page - 1) * pageSize],
+    [...whereParams, pageSize, (page - 1) * pageSize],
   );
   const results = [];
   for (const row of rows) {
+    if (titleOnly) {
+      results.push({
+        id: row.id,
+        title: row.title,
+        boardName: row.board_name,
+        boardSlug: row.board_slug,
+        lastPostAt: Number(row.last_post_at),
+        replyCount: Number(row.reply_count),
+        snippet: "",
+      });
+      continue;
+    }
     const match = await dbGet<{ content: string }>(
       `SELECT content FROM posts
        WHERE thread_id = ? AND deleted_at IS NULL AND hidden_at IS NULL AND content ${op} ? ESCAPE '!'

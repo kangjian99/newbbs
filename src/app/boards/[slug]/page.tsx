@@ -5,7 +5,7 @@ import { Crumbs, EmptyState, PageWidth, Pagination } from "@/components/forum-bi
 import { ThreadList } from "@/components/thread-list";
 import { Button } from "@/components/ui/button";
 import { getCurrentUser } from "@/lib/auth";
-import { BOARD_POST_ROLES, THREAD_PAGE_SIZE } from "@/lib/constants";
+import { BOARD_POST_ROLES, PREVIEW_LENGTH, THREAD_PAGE_SIZE } from "@/lib/constants";
 import { canPostInBoard } from "@/lib/permissions";
 import { pageCount, parsePage, withQuery } from "@/lib/paging";
 import { boardBySlug, listThreads } from "@/server/queries";
@@ -36,6 +36,7 @@ export default async function BoardPage({
     page,
     pageSize: THREAD_PAGE_SIZE,
     order: "board",
+    previewLimit: user ? PREVIEW_LENGTH.member : PREVIEW_LENGTH.guest,
   });
   const totalPages = pageCount(total, THREAD_PAGE_SIZE);
   const canPost = canPostInBoard(user?.role, board.post_role);
