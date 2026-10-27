@@ -4,6 +4,7 @@ import { LoginForm } from "@/components/auth-forms";
 import { PageWidth } from "@/components/forum-bits";
 import { getCurrentUser, hasDemoAdmin } from "@/lib/auth";
 import { firstParam } from "@/lib/paging";
+import { SITE } from "@/lib/constants";
 import { safeNext } from "@/lib/request";
 
 export const metadata: Metadata = { title: "登录" };
@@ -21,7 +22,7 @@ export default async function LoginPage({
   return (
     <PageWidth size="narrow">
       <h1 className="mb-1 text-2xl font-semibold">登录</h1>
-      <p className="mb-6 text-sm text-muted-foreground">用用户名或邮箱进入巷议。</p>
+      <p className="mb-6 text-sm text-muted-foreground">用用户名或邮箱进入{SITE.name}。</p>
       <LoginForm next={next || undefined} showDemo={showDemo} />
     </PageWidth>
   );

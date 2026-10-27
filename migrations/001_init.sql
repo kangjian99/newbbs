@@ -1,4 +1,4 @@
--- 巷议初始结构。
+-- 北地巷议初始结构。
 -- 这份 SQL 同时适用于 Postgres 与 SQLite：
 -- 时间用毫秒 BIGINT（SQLite 对含 INT 的类型名按整数亲和处理），
 -- 布尔用 INTEGER 0/1，主键用 TEXT，避免 SERIAL / BOOLEAN / TIMESTAMPTZ 分叉。

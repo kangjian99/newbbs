@@ -21,7 +21,7 @@ type UserSeed = {
 
 export async function seedIfEmpty() {
   if (!shouldSeedDemo()) {
-    console.info("[巷议] 未开启演示数据（生产模式默认关闭，可用 SEED_DEMO 调整）");
+    console.info("[北地巷议] 未开启演示数据（生产模式默认关闭，可用 SEED_DEMO 调整）");
     return;
   }
   const existing = await transaction(async (tx) => {
@@ -38,7 +38,7 @@ export async function seedIfEmpty() {
       if (Number(again?.c ?? 0) > 0) return;
       await insertSeed(tx, adminHash, demoHash);
     });
-    console.info("[巷议] 已写入演示版块、主题和账号");
+    console.info("[北地巷议] 已写入演示版块、主题和账号");
   } catch (error) {
     const message = error instanceof Error ? error.message : "";
     const left = await transaction(async (tx) => {
@@ -46,11 +46,11 @@ export async function seedIfEmpty() {
       return Number(row?.c ?? 0);
     }).catch(() => 0);
     if (left > 0 && /unique|duplicate/i.test(message)) {
-      console.info("[巷议] 演示数据已存在");
+      console.info("[北地巷议] 演示数据已存在");
       return;
     }
     const safe = message.replace(/postgres(ql)?:\/\/\S+/gi, "[redacted]");
-    console.error(`[巷议] 写入演示数据失败：${safe}`);
+    console.error(`[北地巷议] 写入演示数据失败：${safe}`);
     throw error;
   }
 }
@@ -59,7 +59,7 @@ async function insertSeed(tx: Sql, adminHash: string, demoHash: string) {
   const now = Date.now();
   const ago = (hours: number) => now - Math.round(hours * hour);
   const users: UserSeed[] = [
-    { id: "usr_admin", username: "admin", email: DEMO_ADMIN.email, nickname: "陈衡", role: "admin", hue: 152, bio: "巷议站长。负责版务，也负责把服务器按时叫醒。", mustChange: 1, hash: adminHash },
+    { id: "usr_admin", username: "admin", email: DEMO_ADMIN.email, nickname: "陈衡", role: "admin", hue: 152, bio: "北地巷议站长。负责版务，也负责把服务器按时叫醒。", mustChange: 1, hash: adminHash },
     { id: "usr_lin", username: "lin", email: "lin@xiangyi.local", nickname: "小林", role: "moderator", hue: 200, bio: "技术交流版主。喜欢把问题写清楚再动手。", mustChange: 1, hash: demoHash },
     { id: "usr_he", username: "he", email: "he@xiangyi.local", nickname: "阿禾", role: "user", hue: 28, bio: "在上海做设计，周末会骑车。", mustChange: 1, hash: demoHash },
     { id: "usr_su", username: "su", email: "su@xiangyi.local", nickname: "苏晚", role: "user", hue: 330, bio: "编辑。最近在重读八十年代的小说。", mustChange: 1, hash: demoHash },
@@ -137,8 +137,8 @@ async function insertSeed(tx: Sql, adminHash: string, demoHash: string) {
     authorId: "usr_admin",
     boardId: "brd_notice",
     hours: 240,
-    title: "欢迎来到巷议：发帖之前请读这几条",
-    content: `欢迎来到巷议。这里按版块讨论，回复可以嵌套，方便把一条线索说完。
+    title: "欢迎来到北地巷议：发帖之前请读这几条",
+    content: `欢迎来到北地巷议。这里按版块讨论，回复可以嵌套，方便把一条线索说完。
 
 发帖之前，请先记住这几条：
 

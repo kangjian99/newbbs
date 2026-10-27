@@ -228,7 +228,7 @@ async function migrateWith(runtime: Runtime) {
       }
       await tx.run("INSERT INTO schema_migrations (id, applied_at) VALUES (?, ?)", [file.id, Date.now()]);
     });
-    console.info(`[巷议] 已应用迁移 ${file.id}`);
+    console.info(`[北地巷议] 已应用迁移 ${file.id}`);
   }
 }
 
@@ -245,7 +245,7 @@ async function migrate() {
     const migrator = await openPostgres(direct);
     try {
       await migrateWith(migrator);
-      console.info("[巷议] 迁移使用 DATABASE_URL_DIRECT");
+      console.info("[北地巷议] 迁移使用 DATABASE_URL_DIRECT");
     } finally {
       await migrator.close();
     }
@@ -260,7 +260,7 @@ async function doInit() {
   try {
     const url = databaseUrl();
     current.runtime = url ? await openPostgres(url) : await openSqlite();
-    console.info(`[巷议] 数据库：${current.runtime.dialect === "postgres" ? "Postgres" : "SQLite"}`);
+    console.info(`[北地巷议] 数据库：${current.runtime.dialect === "postgres" ? "Postgres" : "SQLite"}`);
     await migrate();
     const { seedIfEmpty } = await import("@/server/seed");
     await seedIfEmpty();
