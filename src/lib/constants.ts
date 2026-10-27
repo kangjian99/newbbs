@@ -1,7 +1,7 @@
 import type { Role } from "@/lib/types";
 
 export const SITE = {
-  name: "巷议",
+  name: "北地巷议",
   description: "一处安静、清楚的中文讨论区。按版块发帖，回复可以层层嵌套。",
   url: "https://xiangyi.local",
 };

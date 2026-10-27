@@ -3,9 +3,10 @@ import Link from "next/link";
 import { PageWidth, TimeText } from "@/components/forum-bits";
 import { Button } from "@/components/ui/button";
 import { getCurrentUser } from "@/lib/auth";
+import { SITE } from "@/lib/constants";
 import { listBoards } from "@/server/queries";
 
-export const metadata: Metadata = { title: "版块", description: "巷议的讨论版块" };
+export const metadata: Metadata = { title: "版块", description: `${SITE.name}的讨论版块` };
 
 export default async function BoardsPage() {
   const [boards, user] = await Promise.all([listBoards(), getCurrentUser()]);

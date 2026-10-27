@@ -3,6 +3,7 @@ import { Bell } from "lucide-react";
 import { UserMenu } from "@/components/user-menu";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { SITE } from "@/lib/constants";
 import type { PublicUser } from "@/lib/types";
 
 const links = [
@@ -20,7 +21,7 @@ export function SiteHeader({ user, unread }: { user: PublicUser | null; unread: 
       </a>
       <div className="mx-auto flex h-14 max-w-5xl items-center gap-3 px-4">
         <Link href="/" className="shrink-0 text-xl tracking-[0.2em] text-primary">
-          巷议
+          {SITE.name}
         </Link>
         <nav aria-label="主导航" className="hidden items-center gap-1 md:flex">
           {links.slice(0, 3).map((link) => (
@@ -74,7 +75,7 @@ export function SiteFooter({ dialect }: { dialect: string }) {
   return (
     <footer className="mt-16 border-t">
       <div className="mx-auto flex max-w-5xl flex-col gap-1 px-4 py-8 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
-        <p>巷议 · 把话说清楚，也把话说完。</p>
+        <p>{SITE.name} · 把话说清楚，也把话说完。</p>
         <p>时间按北京时间显示 · {dialect}</p>
       </div>
     </footer>
