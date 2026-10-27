@@ -9,13 +9,24 @@ import { isStaff } from "@/lib/permissions";
 import { recordAttempt, tooMany } from "@/lib/rate-limit";
 import { safeNext } from "@/lib/request";
 import type { ActionState, Role } from "@/lib/types";
-import { boardSchema, fieldErrors, postSchema, reportSchema, reservedSlug, threadSchema } from "@/lib/validators";
+import {
+  banSchema,
+  boardSchema,
+  boardUpdateSchema,
+  fieldErrors,
+  postSchema,
+  reportSchema,
+  reservedSlug,
+  roleSchema,
+  threadSchema,
+} from "@/lib/validators";
 import { pageForPost } from "@/server/queries";
 import {
   createBoard,
   createReply,
   createReport,
   createThread,
+  deleteBoard,
   markAllNotificationsRead,
   markNotificationRead,
   moveThread,
@@ -24,8 +35,11 @@ import {
   restoreThread,
   setPostHidden,
   setThreadFlag,
+  setUserBanned,
+  setUserRole,
   softDeletePost,
   softDeleteThread,
+  updateBoard,
   updatePost,
 } from "@/server/writes";
 
@@ -233,6 +247,73 @@ export async function createBoardAction(_prev: ActionState, formData: FormData):
     await createBoard({ ...parsed.data, actorId: user.id });
     refresh();
     redirect(`/boards/${parsed.data.slug}`);
+  } catch (error) {
+    return fail(error);
+  }
+}
+
+export async function updateBoardAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  try {
+    const user = await viewer();
+    if (user.role !== "admin") return { error: "只有管理员可以修改版块" };
+    const parsed = boardUpdateSchema.safeParse({
+      boardId: formData.get("boardId"),
+      name: formData.get("name"),
+      slug: formData.get("slug"),
+      description: formData.get("description") ?? "",
+      sortOrder: formData.get("sortOrder") ?? 0,
+    });
+    if (!parsed.success) return { error: "请检查输入", fieldErrors: fieldErrors(parsed.error) };
+    if (reservedSlug(parsed.data.slug)) return { error: "这个地址是保留字", fieldErrors: { slug: "这个地址是保留字" } };
+    await updateBoard({ ...parsed.data, actorId: user.id });
+    refresh();
+    redirect(`/boards/${parsed.data.slug}`);
+  } catch (error) {
+    return fail(error);
+  }
+}
+
+export async function deleteBoardAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  try {
+    const user = await viewer();
+    await deleteBoard({ actorId: user.id, boardId: String(formData.get("boardId") ?? "") });
+    refresh();
+    redirect("/boards");
+  } catch (error) {
+    return fail(error);
+  }
+}
+
+export async function setUserRoleAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  try {
+    const user = await viewer();
+    const parsed = roleSchema.safeParse({ userId: formData.get("userId"), role: formData.get("role") });
+    if (!parsed.success) return { error: "请检查输入", fieldErrors: fieldErrors(parsed.error) };
+    await setUserRole({ actorId: user.id, ...parsed.data });
+    refresh();
+    return { ok: "角色已更新" };
+  } catch (error) {
+    return fail(error);
+  }
+}
+
+export async function setUserBannedAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  try {
+    const user = await viewer();
+    const parsed = banSchema.safeParse({
+      userId: formData.get("userId"),
+      banned: formData.get("banned"),
+      reason: formData.get("reason") ?? "",
+    });
+    if (!parsed.success) return { error: "请检查输入", fieldErrors: fieldErrors(parsed.error) };
+    await setUserBanned({
+      actorId: user.id,
+      userId: parsed.data.userId,
+      banned: parsed.data.banned === "1",
+      reason: parsed.data.reason,
+    });
+    refresh();
+    return { ok: parsed.data.banned === "1" ? "账号已封禁，对方的登录已全部退出" : "已解除封禁" };
   } catch (error) {
     return fail(error);
   }

@@ -75,6 +75,21 @@ export const boardSchema = z.object({
   sortOrder: z.coerce.number().int().min(0, "排序不能为负").max(9999),
 });
 
+export const boardUpdateSchema = boardSchema.extend({
+  boardId: z.string().trim().min(1, "版块不存在"),
+});
+
+export const roleSchema = z.object({
+  userId: z.string().trim().min(1),
+  role: z.enum(["user", "moderator", "admin"], { message: "请选择角色" }),
+});
+
+export const banSchema = z.object({
+  userId: z.string().trim().min(1),
+  banned: z.enum(["0", "1"]),
+  reason: z.string().trim().max(80, "原因最多 80 字"),
+});
+
 export const reportSchema = z.object({
   targetType: z.enum(["post", "thread"]),
   targetId: z.string().trim().min(1),

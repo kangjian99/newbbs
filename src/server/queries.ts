@@ -140,8 +140,8 @@ export async function listBoards() {
 }
 
 export async function boardBySlug(slug: string) {
-  return dbGet<{ id: string; slug: string; name: string; description: string }>(
-    "SELECT id, slug, name, description FROM boards WHERE slug = ?",
+  return dbGet<{ id: string; slug: string; name: string; description: string; sort_order: number }>(
+    "SELECT id, slug, name, description, sort_order FROM boards WHERE slug = ?",
     [slug],
   );
 }
@@ -373,9 +373,10 @@ export async function listMembers(query: string, page: number, pageSize: number)
     avatar_hue: number;
     role: Role;
     created_at: number;
+    banned_at: number | null;
     post_count: number;
   }>(
-    `SELECT id, username, nickname, bio, avatar_hue, role, created_at,
+    `SELECT id, username, nickname, bio, avatar_hue, role, created_at, banned_at,
       (SELECT COUNT(*) FROM posts p WHERE p.author_id = users.id AND p.deleted_at IS NULL) AS post_count
      FROM users ${where}
      ORDER BY created_at DESC
@@ -392,6 +393,7 @@ export async function listMembers(query: string, page: number, pageSize: number)
       avatarHue: row.avatar_hue,
       role: row.role,
       createdAt: Number(row.created_at),
+      banned: row.banned_at != null,
       postCount: Number(row.post_count),
     })),
   };
@@ -406,8 +408,10 @@ export async function memberProfile(username: string) {
     avatar_hue: number;
     role: Role;
     created_at: number;
+    banned_at: number | null;
+    ban_reason: string;
   }>(
-    "SELECT id, username, nickname, bio, avatar_hue, role, created_at FROM users WHERE username = ?",
+    "SELECT id, username, nickname, bio, avatar_hue, role, created_at, banned_at, ban_reason FROM users WHERE username = ?",
     [username.toLowerCase()],
   );
   if (!user) return null;
@@ -440,6 +444,8 @@ export async function memberProfile(username: string) {
       avatarHue: user.avatar_hue,
       role: user.role,
       createdAt: Number(user.created_at),
+      banned: user.banned_at != null,
+      banReason: user.ban_reason,
     },
     postCount: Number(counts?.posts ?? 0),
     threadCount: Number(counts?.threads ?? 0),

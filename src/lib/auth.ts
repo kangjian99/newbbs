@@ -23,6 +23,8 @@ type UserRow = {
   last_seen_at: number;
   last_visit_at: number;
   prev_visit_at: number;
+  banned_at: number | null;
+  ban_reason: string;
 };
 
 export function adminSetupToken() {
@@ -104,7 +106,7 @@ export async function getCurrentUser() {
   const row = await dbGet<UserRow>(
     `SELECT u.* FROM sessions s
      JOIN users u ON u.id = s.user_id
-     WHERE s.token_hash = ? AND s.expires_at > ?`,
+     WHERE s.token_hash = ? AND s.expires_at > ? AND u.banned_at IS NULL`,
     [sha256(token), Date.now()],
   );
   if (!row) return null;

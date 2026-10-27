@@ -387,6 +387,92 @@ export async function createBoard(input: {
   });
 }
 
+export async function updateBoard(input: {
+  actorId: string;
+  boardId: string;
+  name: string;
+  slug: string;
+  description: string;
+  sortOrder: number;
+}) {
+  await transaction(async (db) => {
+    const actor = await db.get<{ role: Role }>("SELECT role FROM users WHERE id = ?", [input.actorId]);
+    if (actor?.role !== "admin") throw new ForumError("只有管理员可以修改版块");
+    const board = await db.get("SELECT id FROM boards WHERE id = ?", [input.boardId]);
+    if (!board) throw new ForumError("版块不存在");
+    const clash = await db.get("SELECT id FROM boards WHERE slug = ? AND id <> ?", [input.slug, input.boardId]);
+    if (clash) throw new ForumError("这个地址已被其他版块使用");
+    await db.run("UPDATE boards SET name = ?, slug = ?, description = ?, sort_order = ? WHERE id = ?", [
+      input.name,
+      input.slug,
+      input.description,
+      input.sortOrder,
+      input.boardId,
+    ]);
+  });
+}
+
+export async function deleteBoard(input: { actorId: string; boardId: string }) {
+  await transaction(async (db) => {
+    const actor = await db.get<{ role: Role }>("SELECT role FROM users WHERE id = ?", [input.actorId]);
+    if (actor?.role !== "admin") throw new ForumError("只有管理员可以删除版块");
+    const board = await db.get("SELECT id FROM boards WHERE id = ?", [input.boardId]);
+    if (!board) throw new ForumError("版块不存在");
+    const active = await db.get<{ c: number }>(
+      "SELECT COUNT(*) AS c FROM threads WHERE board_id = ? AND deleted_at IS NULL",
+      [input.boardId],
+    );
+    if (Number(active?.c ?? 0) > 0) {
+      throw new ForumError(`版块里还有 ${Number(active?.c)} 个主题，请先把它们移到其他版块或删除`);
+    }
+    await db.run("DELETE FROM threads WHERE board_id = ?", [input.boardId]);
+    await db.run("DELETE FROM boards WHERE id = ?", [input.boardId]);
+  });
+}
+
+export async function setUserRole(input: { actorId: string; userId: string; role: Role }) {
+  await transaction(async (db) => {
+    const actor = await db.get<{ role: Role }>("SELECT role FROM users WHERE id = ?", [input.actorId]);
+    if (actor?.role !== "admin") throw new ForumError("只有管理员可以调整角色");
+    if (input.userId === input.actorId) throw new ForumError("不能修改自己的角色");
+    const target = await db.get<{ role: Role }>("SELECT role FROM users WHERE id = ?", [input.userId]);
+    if (!target) throw new ForumError("会员不存在");
+    if (target.role === input.role) return;
+    await db.run("UPDATE users SET role = ? WHERE id = ?", [input.role, input.userId]);
+    const label = { user: "普通会员", moderator: "版主", admin: "管理员" }[input.role];
+    await notify(db, {
+      userId: input.userId,
+      actorId: input.actorId,
+      type: "role",
+      title: `你的角色已调整为${label}`,
+      body: "",
+      href: "/me",
+      createdAt: Date.now(),
+    });
+  });
+}
+
+export async function setUserBanned(input: { actorId: string; userId: string; banned: boolean; reason?: string }) {
+  await transaction(async (db) => {
+    const actor = await db.get<{ role: Role }>("SELECT role FROM users WHERE id = ?", [input.actorId]);
+    if (actor?.role !== "admin") throw new ForumError("只有管理员可以封禁账号");
+    if (input.userId === input.actorId) throw new ForumError("不能封禁自己");
+    const target = await db.get<{ role: Role }>("SELECT role FROM users WHERE id = ?", [input.userId]);
+    if (!target) throw new ForumError("会员不存在");
+    if (input.banned) {
+      if (target.role === "admin") throw new ForumError("不能封禁管理员，请先把他降为普通会员");
+      await db.run("UPDATE users SET banned_at = ?, ban_reason = ? WHERE id = ?", [
+        Date.now(),
+        (input.reason ?? "").trim().slice(0, 80),
+        input.userId,
+      ]);
+      await db.run("DELETE FROM sessions WHERE user_id = ?", [input.userId]);
+    } else {
+      await db.run("UPDATE users SET banned_at = NULL, ban_reason = '' WHERE id = ?", [input.userId]);
+    }
+  });
+}
+
 export async function createReport(
   input: { reporterId: string; targetType: "post" | "thread"; targetId: string; reason: string; detail: string; createdAt?: number },
   tx?: Sql,
