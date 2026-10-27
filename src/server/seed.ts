@@ -21,7 +21,7 @@ type UserSeed = {
 
 export async function seedIfEmpty() {
   if (!shouldSeedDemo()) {
-    console.info("[巷议] SEED_DEMO=false，跳过演示数据");
+    console.info("[巷议] 未开启演示数据（生产模式默认关闭，可用 SEED_DEMO 调整）");
     return;
   }
   const existing = await transaction(async (tx) => {
