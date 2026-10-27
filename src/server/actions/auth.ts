@@ -3,12 +3,14 @@
 import { redirect } from "next/navigation";
 import { fail } from "@/lib/action";
 import {
-  adminEmail,
+  adminSetupToken,
   createSession,
   destroySession,
   findUserByAccount,
   findUserById,
   getCurrentUser,
+  hasAnyAdmin,
+  matchesAdminSetupToken,
 } from "@/lib/auth";
 import { consumeCaptcha, consumeFormToken } from "@/lib/captcha";
 import { dbGet, dbRun } from "@/lib/db";
@@ -70,6 +72,7 @@ export async function registerAction(_prev: ActionState, formData: FormData): Pr
       captchaId: formData.get("captchaId"),
       formToken: formData.get("formToken"),
       faxNumber: formData.get("faxNumber"),
+      adminToken: formData.get("adminToken") ?? undefined,
     });
     if (!parsed.success) return { error: "请检查输入", fieldErrors: fieldErrors(parsed.error) };
     const data = parsed.data;
@@ -100,9 +103,17 @@ export async function registerAction(_prev: ActionState, formData: FormData): Pr
     const emailTaken = await dbGet("SELECT id FROM users WHERE email = ?", [email]);
     if (emailTaken) return { error: "这个邮箱已注册", fieldErrors: { email: "这个邮箱已注册" } };
 
+    let role: "admin" | "user" = "user";
+    const adminToken = (data.adminToken ?? "").trim();
+    if (adminToken) {
+      if (!adminSetupToken() || (await hasAnyAdmin()) || !matchesAdminSetupToken(adminToken)) {
+        return { error: "管理员口令无效", fieldErrors: { adminToken: "管理员口令无效" } };
+      }
+      role = "admin";
+    }
+
     const now = Date.now();
     const id = createId();
-    const role = adminEmail() && email === adminEmail() ? "admin" : "user";
     await dbRun(
       `INSERT INTO users (
         id, username, email, password_hash, nickname, bio, avatar_hue, role,

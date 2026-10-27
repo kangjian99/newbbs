@@ -2,7 +2,7 @@ import "server-only";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { dbGet, dbRun } from "@/lib/db";
-import { createId, randomToken, sha256 } from "@/lib/ids";
+import { createId, randomToken, safeEqual, sha256 } from "@/lib/ids";
 import { isStaff } from "@/lib/permissions";
 import type { PublicUser, Role } from "@/lib/types";
 
@@ -25,8 +25,15 @@ type UserRow = {
   prev_visit_at: number;
 };
 
-export function adminEmail() {
-  return process.env.ADMIN_EMAIL?.trim().toLowerCase() ?? "";
+export function adminSetupToken() {
+  const token = process.env.ADMIN_SETUP_TOKEN?.trim() ?? "";
+  return token.length >= 16 ? token : "";
+}
+
+export function matchesAdminSetupToken(candidate: string) {
+  const token = adminSetupToken();
+  if (!token || !candidate) return false;
+  return safeEqual(sha256(candidate.trim()), sha256(token));
 }
 
 export function toPublic(row: UserRow): PublicUser {
@@ -51,13 +58,6 @@ export async function findUserByAccount(account: string) {
 
 export async function findUserById(id: string) {
   return dbGet<UserRow>("SELECT * FROM users WHERE id = ?", [id]);
-}
-
-async function promoteIfConfigured(row: UserRow) {
-  const email = adminEmail();
-  if (!email || row.email !== email || row.role !== "user") return row;
-  await dbRun("UPDATE users SET role = 'admin' WHERE id = ?", [row.id]);
-  return { ...row, role: "admin" as const };
 }
 
 export async function createSession(userId: string, options?: { rotateVisit?: boolean }) {
@@ -102,11 +102,10 @@ export async function getCurrentUser() {
     [sha256(token), Date.now()],
   );
   if (!row) return null;
-  const promoted = await promoteIfConfigured(row);
-  if (Date.now() - promoted.last_seen_at > 120_000) {
-    await dbRun("UPDATE users SET last_seen_at = ? WHERE id = ?", [Date.now(), promoted.id]);
+  if (Date.now() - row.last_seen_at > 120_000) {
+    await dbRun("UPDATE users SET last_seen_at = ? WHERE id = ?", [Date.now(), row.id]);
   }
-  return toPublic(promoted);
+  return toPublic(row);
 }
 
 export async function requireUser(nextPath: string) {
