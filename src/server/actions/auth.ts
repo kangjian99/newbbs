@@ -11,6 +11,7 @@ import {
   getCurrentUser,
   hasAnyAdmin,
   matchesAdminSetupToken,
+  revokeOtherSessions,
 } from "@/lib/auth";
 import { consumeCaptcha, consumeFormToken } from "@/lib/captcha";
 import { dbGet, dbRun } from "@/lib/db";
@@ -123,7 +124,7 @@ export async function registerAction(_prev: ActionState, formData: FormData): Pr
         id, username, email, password_hash, nickname, bio, avatar_hue, role,
         created_at, last_seen_at, last_visit_at, prev_visit_at
       ) VALUES (?, ?, ?, ?, ?, '', ?, ?, ?, ?, ?, ?)`,
-      [id, username, email, hashPassword(data.password), data.nickname, Math.floor(Math.random() * 360), role, now, now, now, now],
+      [id, username, email, await hashPassword(data.password), data.nickname, Math.floor(Math.random() * 360), role, now, now, now, now],
     );
     await markAllThreadsRead(id);
     await createSession(id);
@@ -176,10 +177,11 @@ export async function changePasswordAction(_prev: ActionState, formData: FormDat
     const matched = await verifyPassword(parsed.data.currentPassword, row?.password_hash ?? null);
     if (!row || !matched) return { error: "当前密码不正确", fieldErrors: { currentPassword: "当前密码不正确" } };
     await dbRun("UPDATE users SET password_hash = ?, must_change_password = 0 WHERE id = ?", [
-      hashPassword(parsed.data.newPassword),
+      await hashPassword(parsed.data.newPassword),
       user.id,
     ]);
-    return { ok: "密码已更新" };
+    await revokeOtherSessions(user.id);
+    return { ok: "密码已更新，其他设备上的登录已退出" };
   } catch (error) {
     return fail(error);
   }

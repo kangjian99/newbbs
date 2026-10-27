@@ -30,8 +30,8 @@ export async function seedIfEmpty() {
   });
   if (existing > 0) return;
 
-  const adminHash = hashPassword(DEMO_ADMIN.password);
-  const demoHash = hashPassword(DEMO_PASSWORD);
+  const adminHash = await hashPassword(DEMO_ADMIN.password);
+  const demoHash = await hashPassword(DEMO_PASSWORD);
   try {
     await transaction(async (tx) => {
       const again = await tx.get<{ c: number }>("SELECT COUNT(*) AS c FROM users");

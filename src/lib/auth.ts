@@ -91,6 +91,12 @@ export async function destroySession() {
   jar.delete(COOKIE);
 }
 
+export async function revokeOtherSessions(userId: string) {
+  const jar = await cookies();
+  const token = jar.get(COOKIE)?.value;
+  await dbRun("DELETE FROM sessions WHERE user_id = ? AND token_hash <> ?", [userId, token ? sha256(token) : ""]);
+}
+
 export async function getCurrentUser() {
   const jar = await cookies();
   const token = jar.get(COOKIE)?.value;
