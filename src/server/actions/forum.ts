@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { fail } from "@/lib/action";
 import { getCurrentUser } from "@/lib/auth";
 import { ForumError } from "@/lib/errors";
+import { deriveTitle } from "@/lib/format";
 import { isStaff } from "@/lib/permissions";
 import { recordAttempt, tooMany } from "@/lib/rate-limit";
 import { safeNext } from "@/lib/request";
@@ -77,7 +78,11 @@ export async function createThreadAction(_prev: ActionState, formData: FormData)
     });
     if (!parsed.success) return { error: "请检查输入", fieldErrors: fieldErrors(parsed.error) };
     await throttle(user, "thread");
-    const created = await createThread({ ...parsed.data, authorId: user.id });
+    const created = await createThread({
+      ...parsed.data,
+      title: parsed.data.title || deriveTitle(parsed.data.content),
+      authorId: user.id,
+    });
     await recordAttempt("thread", `user:${user.id}`);
     refresh();
     redirect(`/threads/${created.threadId}`);
@@ -241,6 +246,7 @@ export async function createBoardAction(_prev: ActionState, formData: FormData):
       slug: formData.get("slug"),
       description: formData.get("description") ?? "",
       sortOrder: formData.get("sortOrder") ?? 0,
+      postRole: formData.get("postRole") ?? "user",
     });
     if (!parsed.success) return { error: "请检查输入", fieldErrors: fieldErrors(parsed.error) };
     if (reservedSlug(parsed.data.slug)) return { error: "这个地址是保留字", fieldErrors: { slug: "这个地址是保留字" } };
@@ -262,6 +268,7 @@ export async function updateBoardAction(_prev: ActionState, formData: FormData):
       slug: formData.get("slug"),
       description: formData.get("description") ?? "",
       sortOrder: formData.get("sortOrder") ?? 0,
+      postRole: formData.get("postRole") ?? "user",
     });
     if (!parsed.success) return { error: "请检查输入", fieldErrors: fieldErrors(parsed.error) };
     if (reservedSlug(parsed.data.slug)) return { error: "这个地址是保留字", fieldErrors: { slug: "这个地址是保留字" } };

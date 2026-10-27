@@ -4,8 +4,8 @@ import { dbGet, dbRun, transaction, type Sql } from "@/lib/db";
 import { ForumError } from "@/lib/errors";
 import { excerpt } from "@/lib/format";
 import { createId } from "@/lib/ids";
-import { isStaff } from "@/lib/permissions";
-import type { Role } from "@/lib/types";
+import { canPostInBoard, isStaff } from "@/lib/permissions";
+import type { BoardPostRole, Role } from "@/lib/types";
 
 async function withDb<T>(tx: Sql | undefined, fn: (db: Sql) => Promise<T>) {
   if (tx) return fn(tx);
@@ -90,12 +90,17 @@ export async function createThread(
     title: string;
     content: string;
     createdAt?: number;
+    enforcePermission?: boolean;
   },
   tx?: Sql,
 ) {
   return withDb(tx, async (db) => {
-    const board = await db.get("SELECT id FROM boards WHERE id = ?", [input.boardId]);
+    const board = await db.get<{ post_role: string }>("SELECT post_role FROM boards WHERE id = ?", [input.boardId]);
     if (!board) throw new ForumError("版块不存在");
+    if (input.enforcePermission !== false) {
+      const author = await db.get<{ role: Role }>("SELECT role FROM users WHERE id = ?", [input.authorId]);
+      if (!canPostInBoard(author?.role, board.post_role)) throw new ForumError("你没有权限在这个版块发布主题");
+    }
     const now = input.createdAt ?? Date.now();
     const threadId = input.id ?? createId();
     const postId = input.postId ?? createId();
@@ -329,8 +334,9 @@ export async function moveThread(input: { threadId: string; actorId: string; boa
   await transaction(async (db) => {
     const actor = await db.get<{ role: Role }>("SELECT role FROM users WHERE id = ?", [input.actorId]);
     if (!isStaff(actor?.role)) throw new ForumError("没有管理权限");
-    const board = await db.get("SELECT id FROM boards WHERE id = ?", [input.boardId]);
+    const board = await db.get<{ post_role: string }>("SELECT post_role FROM boards WHERE id = ?", [input.boardId]);
     if (!board) throw new ForumError("目标版块不存在");
+    if (!canPostInBoard(actor?.role, board.post_role)) throw new ForumError("你没有权限把主题移到这个版块");
     const updated = await db.run(
       "UPDATE threads SET board_id = ?, updated_at = ? WHERE id = ? AND deleted_at IS NULL",
       [input.boardId, Date.now(), input.threadId],
@@ -374,6 +380,7 @@ export async function createBoard(input: {
   slug: string;
   description: string;
   sortOrder: number;
+  postRole: BoardPostRole;
 }) {
   await transaction(async (db) => {
     const actor = await db.get<{ role: Role }>("SELECT role FROM users WHERE id = ?", [input.actorId]);
@@ -381,8 +388,8 @@ export async function createBoard(input: {
     const exists = await db.get("SELECT id FROM boards WHERE slug = ?", [input.slug]);
     if (exists) throw new ForumError("这个地址已被使用");
     await db.run(
-      "INSERT INTO boards (id, slug, name, description, sort_order, created_at) VALUES (?, ?, ?, ?, ?, ?)",
-      [createId(), input.slug, input.name, input.description, input.sortOrder, Date.now()],
+      "INSERT INTO boards (id, slug, name, description, sort_order, post_role, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
+      [createId(), input.slug, input.name, input.description, input.sortOrder, input.postRole, Date.now()],
     );
   });
 }
@@ -394,6 +401,7 @@ export async function updateBoard(input: {
   slug: string;
   description: string;
   sortOrder: number;
+  postRole: BoardPostRole;
 }) {
   await transaction(async (db) => {
     const actor = await db.get<{ role: Role }>("SELECT role FROM users WHERE id = ?", [input.actorId]);
@@ -402,11 +410,12 @@ export async function updateBoard(input: {
     if (!board) throw new ForumError("版块不存在");
     const clash = await db.get("SELECT id FROM boards WHERE slug = ? AND id <> ?", [input.slug, input.boardId]);
     if (clash) throw new ForumError("这个地址已被其他版块使用");
-    await db.run("UPDATE boards SET name = ?, slug = ?, description = ?, sort_order = ? WHERE id = ?", [
+    await db.run("UPDATE boards SET name = ?, slug = ?, description = ?, sort_order = ?, post_role = ? WHERE id = ?", [
       input.name,
       input.slug,
       input.description,
       input.sortOrder,
+      input.postRole,
       input.boardId,
     ]);
   });

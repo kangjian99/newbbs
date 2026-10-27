@@ -80,16 +80,16 @@ async function insertSeed(tx: Sql, adminHash: string, demoHash: string) {
   }
 
   const boards = [
-    ["brd_notice", "notice", "站务公告", "站点规则、维护通知和重要说明。", 0],
-    ["brd_general", "general", "综合讨论", "没有明确分类的话题，放在这里就好。", 1],
-    ["brd_tech", "tech", "技术交流", "编程、工具、排版和工程实践。", 2],
-    ["brd_culture", "culture", "读书影音", "书、电影、音乐和播客。", 3],
-    ["brd_life", "life", "生活闲聊", "天气、吃饭、城市和日常。", 4],
+    ["brd_notice", "notice", "站务公告", "站点规则、维护通知和重要说明。", 0, "admin"],
+    ["brd_general", "general", "综合讨论", "没有明确分类的话题，放在这里就好。", 1, "user"],
+    ["brd_tech", "tech", "技术交流", "编程、工具、排版和工程实践。", 2, "user"],
+    ["brd_culture", "culture", "读书影音", "书、电影、音乐和播客。", 3, "user"],
+    ["brd_life", "life", "生活闲聊", "天气、吃饭、城市和日常。", 4, "user"],
   ] as const;
-  for (const [id, slug, name, description, sort] of boards) {
+  for (const [id, slug, name, description, sort, postRole] of boards) {
     await tx.run(
-      "INSERT INTO boards (id, slug, name, description, sort_order, created_at) VALUES (?, ?, ?, ?, ?, ?)",
-      [id, slug, name, description, sort, ago(500 - sort)],
+      "INSERT INTO boards (id, slug, name, description, sort_order, post_role, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
+      [id, slug, name, description, sort, postRole, ago(500 - sort)],
     );
   }
 

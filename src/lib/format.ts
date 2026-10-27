@@ -60,6 +60,19 @@ export function excerpt(text: string, limit = 90) {
   return `${flat.slice(0, limit)}…`;
 }
 
+export function deriveTitle(content: string, limit = 40) {
+  for (const line of content.split("\n")) {
+    const text = line
+      .replace(/!?\[([^\]]*)\]\([^)]*\)/g, "$1")
+      .replace(/^[\s>#*\-+`]+/, "")
+      .replace(/[*_`~]/g, "")
+      .replace(/\s+/g, " ")
+      .trim();
+    if (text) return text.length <= limit ? text : `${text.slice(0, limit)}…`;
+  }
+  return "（无标题）";
+}
+
 export function snippetAround(text: string, query: string, radius = 42) {
   const flat = text.replace(/\s+/g, " ").trim();
   if (!query) return excerpt(flat, radius * 2);

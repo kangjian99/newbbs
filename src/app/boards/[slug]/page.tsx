@@ -5,7 +5,8 @@ import { Crumbs, EmptyState, PageWidth, Pagination } from "@/components/forum-bi
 import { ThreadList } from "@/components/thread-list";
 import { Button } from "@/components/ui/button";
 import { getCurrentUser } from "@/lib/auth";
-import { THREAD_PAGE_SIZE } from "@/lib/constants";
+import { BOARD_POST_ROLES, THREAD_PAGE_SIZE } from "@/lib/constants";
+import { canPostInBoard } from "@/lib/permissions";
 import { pageCount, parsePage, withQuery } from "@/lib/paging";
 import { boardBySlug, listThreads } from "@/server/queries";
 
@@ -37,6 +38,9 @@ export default async function BoardPage({
     order: "board",
   });
   const totalPages = pageCount(total, THREAD_PAGE_SIZE);
+  const canPost = canPostInBoard(user?.role, board.post_role);
+  const restricted = board.post_role !== "user";
+  const restrictionLabel = BOARD_POST_ROLES.find((item) => item.value === board.post_role)?.label;
   return (
     <PageWidth>
       <Crumbs items={[{ href: "/", label: "首页" }, { href: "/boards", label: "版块" }, { label: board.name }]} />
@@ -44,18 +48,21 @@ export default async function BoardPage({
         <div>
           <h1 className="text-2xl font-semibold">{board.name}</h1>
           <p className="text-sm text-muted-foreground">{board.description}</p>
+          {restricted ? <p className="mt-1 text-xs text-muted-foreground">发布主题：{restrictionLabel}。所有会员都可以回复。</p> : null}
         </div>
         <div className="flex gap-2">
           {user?.role === "admin" ? (
             <Button asChild variant="outline" className="h-10"><Link href={`/boards/${board.slug}/edit`}>编辑版块</Link></Button>
           ) : null}
-        <Button asChild className="h-10">
-          <Link href={user ? `/threads/new?board=${board.slug}` : `/login?next=${encodeURIComponent(`/threads/new?board=${board.slug}`)}`}>发布主题</Link>
-        </Button>
+          {user && !canPost ? null : (
+            <Button asChild className="h-10">
+              <Link href={user ? `/threads/new?board=${board.slug}` : `/login?next=${encodeURIComponent(`/threads/new?board=${board.slug}`)}`}>发布主题</Link>
+            </Button>
+          )}
         </div>
       </div>
       {threads.length === 0 ? (
-        <EmptyState title="这个版块还没有主题">来写第一篇。</EmptyState>
+        <EmptyState title="这个版块还没有主题">{canPost ? "来写第一篇。" : "管理员发布后会出现在这里。"}</EmptyState>
       ) : (
         <ThreadList threads={threads} />
       )}

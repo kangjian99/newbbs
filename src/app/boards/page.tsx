@@ -3,6 +3,7 @@ import Link from "next/link";
 import { PageWidth, TimeText } from "@/components/forum-bits";
 import { Button } from "@/components/ui/button";
 import { getCurrentUser } from "@/lib/auth";
+import { Badge } from "@/components/ui/badge";
 import { SITE } from "@/lib/constants";
 import { listBoards } from "@/server/queries";
 
@@ -25,7 +26,10 @@ export default async function BoardsPage() {
         {boards.map((board) => (
           <article key={board.id} className="border-b px-4 py-4 last:border-b-0">
             <div className="flex flex-wrap items-baseline justify-between gap-2">
-              <Link href={`/boards/${board.slug}`} className="text-lg font-medium hover:text-primary">{board.name}</Link>
+              <span className="flex items-center gap-2">
+                <Link href={`/boards/${board.slug}`} className="text-lg font-medium hover:text-primary">{board.name}</Link>
+                {board.postRole !== "user" ? <Badge variant="outline">{board.postRole === "admin" ? "仅管理员发帖" : "版主以上发帖"}</Badge> : null}
+              </span>
               <span className="flex items-center gap-3 text-sm text-muted-foreground">
                 {board.threadCount} 个主题
                 {user?.role === "admin" ? (
