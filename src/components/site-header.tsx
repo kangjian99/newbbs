@@ -75,7 +75,7 @@ export function SiteFooter({ dialect }: { dialect: string }) {
   return (
     <footer className="mt-16 border-t">
       <div className="mx-auto flex max-w-5xl flex-col gap-1 px-4 py-8 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
-        <p>{SITE.name} · 把话说清楚，也把话说完。</p>
+        <p>{SITE.name} · 慢慢说，认真听。</p>
         <p>时间按北京时间显示 · {dialect}</p>
       </div>
     </footer>

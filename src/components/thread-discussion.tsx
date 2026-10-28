@@ -82,6 +82,17 @@ function ReportDialog({ postId }: { postId: string }) {
   );
 }
 
+function deleteNotice(post: PostDTO, isOp: boolean) {
+  if (!isOp) {
+    return post.staffDelete
+      ? `你正在删除「${post.nickname}」的这条发言。删除后普通会员会看到“该发言已删除”，管理人员可以恢复。`
+      : "删除后，其他会员会看到「该发言已删除」。";
+  }
+  if (!post.staffDelete) return "目前还没有人回复，删除后主题会从列表中消失。已经有人回复的主题不能由作者删除。";
+  const replies = post.threadReplyCount > 0 ? `其中 ${post.threadReplyCount} 条回复也会一起从普通会员面前消失。` : "";
+  return `你正在删除「${post.nickname}」的整个主题。${replies}管理人员可以在主题页恢复。`;
+}
+
 function DeleteDialog({ post, isOp }: { post: PostDTO; isOp: boolean }) {
   const [state, action, pending] = useActionState(deletePostAction, null);
   return (
@@ -91,10 +102,11 @@ function DeleteDialog({ post, isOp }: { post: PostDTO; isOp: boolean }) {
       </DialogTrigger>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>{isOp ? "删除整个主题？" : "删除这条发言？"}</DialogTitle>
-          <DialogDescription>
-            {isOp ? "删除楼主发言会同时隐藏整个主题。主题不会从数据库里物理抹掉。" : "删除后，其他会员会看到「该发言已删除」。"}
-          </DialogDescription>
+          <DialogTitle>
+            {post.staffDelete ? "管理操作：" : ""}
+            {isOp ? "删除整个主题？" : "删除这条发言？"}
+          </DialogTitle>
+          <DialogDescription>{deleteNotice(post, isOp)}</DialogDescription>
         </DialogHeader>
         <form action={action}>
           <input type="hidden" name="postId" value={post.id} />

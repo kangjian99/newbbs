@@ -75,6 +75,8 @@ export type PostDTO = {
   canViewBody: boolean;
   canEdit: boolean;
   canDelete: boolean;
+  staffDelete: boolean;
+  threadReplyCount: number;
   canHide: boolean;
   canRestore: boolean;
   canReply: boolean;

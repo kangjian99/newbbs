@@ -249,7 +249,15 @@ export async function softDeletePost(input: { postId: string; actorId: string },
     }>("SELECT id, thread_id, author_id, is_op, deleted_at FROM posts WHERE id = ?", [input.postId]);
     if (!post || post.deleted_at) throw new ForumError("发言不存在或已删除");
     const actor = await db.get<{ role: Role }>("SELECT role FROM users WHERE id = ?", [input.actorId]);
-    if (post.author_id !== input.actorId && !isStaff(actor?.role)) throw new ForumError("不能删除这条发言");
+    const staff = isStaff(actor?.role);
+    if (post.author_id !== input.actorId && !staff) throw new ForumError("不能删除这条发言");
+    if (post.is_op === 1 && !staff) {
+      const replies = await db.get<{ c: number }>(
+        "SELECT COUNT(*) AS c FROM posts WHERE thread_id = ? AND is_op = 0 AND deleted_at IS NULL",
+        [post.thread_id],
+      );
+      if (Number(replies?.c ?? 0) > 0) throw new ForumError("已经有人回复，不能再删除本帖。需要处理请联系版主或管理员。");
+    }
     const now = Date.now();
     await db.run("UPDATE posts SET deleted_at = ?, updated_at = ? WHERE id = ?", [now, now, post.id]);
     if (post.is_op === 1) {
