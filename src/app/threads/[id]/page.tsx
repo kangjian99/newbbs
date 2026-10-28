@@ -71,6 +71,8 @@ export default async function ThreadPage({
             pinned={thread.is_pinned === 1}
             locked={locked}
             deleted={deleted}
+            title={thread.title}
+            replyCount={discussion.liveReplies}
             boards={boards
               .filter((board) => board.id === thread.board_id || canPostInBoard(user?.role, board.postRole))
               .map((board) => ({ id: board.id, name: board.name }))}

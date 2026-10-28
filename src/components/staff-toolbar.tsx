@@ -1,11 +1,11 @@
 import {
-  deleteThreadAction,
   moveThreadAction,
   restoreThreadAction,
   toggleLockAction,
   togglePinAction,
 } from "@/server/actions/forum";
 import { NativeSelect } from "@/components/forum-bits";
+import { DeleteThreadDialog } from "@/components/delete-thread-dialog";
 import { Button } from "@/components/ui/button";
 
 export function StaffToolbar({
@@ -15,6 +15,8 @@ export function StaffToolbar({
   locked,
   deleted,
   boards,
+  title,
+  replyCount,
 }: {
   threadId: string;
   boardId: string;
@@ -22,6 +24,8 @@ export function StaffToolbar({
   locked: boolean;
   deleted: boolean;
   boards: Array<{ id: string; name: string }>;
+  title: string;
+  replyCount: number;
 }) {
   if (deleted) {
     return (
@@ -54,10 +58,7 @@ export function StaffToolbar({
         </NativeSelect>
         <Button type="submit" size="sm" variant="outline">移动</Button>
       </form>
-      <form action={deleteThreadAction}>
-        <input type="hidden" name="threadId" value={threadId} />
-        <Button type="submit" size="sm" variant="destructive">删除主题</Button>
-      </form>
+      <DeleteThreadDialog threadId={threadId} title={title} replyCount={replyCount} />
     </div>
   );
 }

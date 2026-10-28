@@ -267,6 +267,7 @@ export async function threadDiscussion(threadId: string, page: number, viewer: P
     for (const child of children.get(row.id) ?? []) walk(child);
   };
   slice.forEach(walk);
+  const liveReplies = rows.filter((row) => row.is_op !== 1 && row.deleted_at == null).length;
   const floorOf = new Map(rows.map((row, index) => [row.id, index + 1]));
   const posts = rows.filter((row) => include.has(row.id)).map((row): PostDTO => {
     const visible = canViewBody(row, viewer);
@@ -291,7 +292,11 @@ export async function threadDiscussion(threadId: string, page: number, viewer: P
       hiddenReason: row.hidden_reason,
       canViewBody: visible,
       canEdit: Boolean(viewer && viewer.id === row.author_id && !deleted && !threadDeleted && (!hidden || staff) && (!locked || staff)),
-      canDelete: Boolean(viewer && !deleted && (viewer.id === row.author_id || staff)),
+      canDelete: Boolean(
+        viewer && !deleted && (staff || (viewer.id === row.author_id && (row.is_op !== 1 || liveReplies === 0))),
+      ),
+      staffDelete: staff,
+      threadReplyCount: liveReplies,
       canHide: Boolean(staff && !deleted),
       canRestore: Boolean(staff && deleted),
       canReply: Boolean(viewer && canReplyToThread(viewer.role, locked, threadDeleted) && !deleted && (!hidden || row.is_op === 1 || staff)),
@@ -299,7 +304,7 @@ export async function threadDiscussion(threadId: string, page: number, viewer: P
       parentNickname: row.parent_nickname,
     };
   });
-  return { posts, page: safePage, totalPages, totalRoots };
+  return { posts, page: safePage, totalPages, totalRoots, liveReplies };
 }
 
 export async function pageForPost(threadId: string, postId: string) {
